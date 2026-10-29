@@ -1,5 +1,6 @@
 import { SHAKIR_QASMI_MAP } from '../data/shakirQasmiMap';
 import { WAHEED_ZAFAR_MAP } from '../data/waheedZafarMap';
+import { OMAR_ZIAUDDIN_MAP } from '../data/omarZiauddinMap';
 
 /**
  * SPECIAL_RECITER_SURAHS
@@ -81,6 +82,15 @@ export function getReciterSurahUrl(
     if (filename) {
       return `https://archive.org/download/AlQuranWithUrduTranslation_Recitation_By_QariWaheedZafarQasmi_Translation_By_Mau/${encodeURIComponent(filename)}`;
     }
+  }
+
+  // Case 2d: Qari Omar Bin Ziauddin archive.org mapping
+  if (reciterId === 'omar_bin_ziauddin') {
+    const filename = OMAR_ZIAUDDIN_MAP[surahNumber];
+    if (filename) {
+      return `https://archive.org/download/20240229_20240229_1756/${encodeURIComponent(filename)}`;
+    }
+    return '';
   }
 
   // Case 3: Standard folder-based pattern

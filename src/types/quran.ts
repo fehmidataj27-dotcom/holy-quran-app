@@ -10,6 +10,8 @@ export interface Reciter {
   photo?: string;
   description: string;
   qdcReciterId?: number; // Quran.com official CDN reciter ID for 100% exact timing
+  hasFullQuran?: boolean; // True if all 114 Surahs available
+  availableSurahs?: number[]; // List of available surah numbers if partial
 }
 
 export interface Surah {

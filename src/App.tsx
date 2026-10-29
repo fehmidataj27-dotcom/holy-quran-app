@@ -34,7 +34,8 @@ function getSavedReciter(): Reciter {
       if (found) return found;
     }
   } catch {}
-  return RECITERS_LIST[0];
+  // Default to first full-Quran reciter (Sheikh Abdul Rahman Al-Sudais)
+  return RECITERS_LIST.find(r => r.hasFullQuran) || RECITERS_LIST[0];
 }
 
 function getSavedSurah(): Surah {
@@ -418,6 +419,7 @@ export const App: React.FC = () => {
         onClose={() => setIsReciterModalOpen(false)}
         selectedReciter={selectedReciter}
         onSelectReciter={handleSelectReciter}
+        onSelectSurah={handleSelectSurah}
       />
 
       {/* ── Persistent Audio Player ── */}

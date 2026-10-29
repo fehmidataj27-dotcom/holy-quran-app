@@ -233,13 +233,21 @@ export const AudioStudioPlayer: React.FC<AudioStudioPlayerProps> = ({
 
       {/* ── NOT AVAILABLE BANNER ── */}
       {unavailable && (
-        <div className="max-w-7xl mx-auto flex items-center justify-center gap-2 mb-2 px-4 py-2 bg-red-950/60 border border-red-500/40 rounded-xl text-red-300 text-xs">
-          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-          <span>
-            یہ سورۃ ({currentSurah.name}) اس وقت{' '}
-            <strong>{currentReciter.arabicName || currentReciter.name}</strong>{' '}
-            کی آواز میں دستیاب نہیں — دوسری سورۃ یا قاری منتخب کریں
-          </span>
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 mb-2 px-4 py-2 bg-amber-950/70 border border-amber-500/50 rounded-xl text-amber-200 text-xs">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
+            <span>
+              یہ سورۃ ({currentSurah.name}) اس وقت{' '}
+              <strong>{currentReciter.arabicName || currentReciter.name}</strong>{' '}
+              کی ریکارڈنگ میں دستیاب نہیں۔
+            </span>
+          </div>
+          <button
+            onClick={onSelectReciterModal}
+            className="px-3 py-1 bg-[#d4af37] text-black font-semibold rounded-lg hover:bg-[#e5c158] transition-all shrink-0"
+          >
+            دستیاب سورتیں یا مکمل قرآن والے قاری منتخب کریں
+          </button>
         </div>
       )}
 
