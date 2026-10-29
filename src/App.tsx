@@ -80,63 +80,11 @@ export const App: React.FC = () => {
     return () => { cancelled = true; };
   }, [selectedReciter.qdcReciterId, selectedSurah.number]);
 
-  // Track active ayah by exact milliseconds when official timings exist
+  // User requested: No automatic jumping/popping of ayahs during audio playback
+  // Only focus/scroll when user explicitly clicks an ayah to play or selects it
   useEffect(() => {
-    if (!isPlaying) return;
-
-    // Method 1: Official verified millisecond timings from Quran.com CDN
-    // Adding a 600ms safety buffer so it NEVER jumps while last words are still being recited
-    if (exactTimings.length) {
-      const currentMs = audioCurrentTime * 1000;
-      const matchedTiming = exactTimings.find(
-        t => currentMs >= t.timestampFrom && currentMs < (t.timestampTo + 600)
-      );
-
-      if (matchedTiming) {
-        const activeAyah = ayahs.find(a => a.numberInSurah === matchedTiming.verseNumber);
-        if (activeAyah && activeAyah.number !== currentPlayingAyah?.number) {
-          setCurrentPlayingAyah(activeAyah);
-          const el = ayahRefs.current[activeAyah.number];
-          if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }
-        }
-      }
-      return;
-    }
-
-    // Method 2: Smart word-weighted sync for other reciters
-    // Using a conservative threshold to prevent jumping before the ayah is fully finished
-    if (audioDuration > 0 && ayahs.length > 0) {
-      const wordCounts = ayahs.map(a => Math.max(1, a.text.split(/\s+/).filter(Boolean).length));
-      const totalWords = wordCounts.reduce((sum, w) => sum + w, 0);
-      if (totalWords === 0) return;
-
-      // Slight offset to give full breath time to the current ayah
-      const adjustedTime = Math.max(0, audioCurrentTime - 1.2);
-      const progress = Math.min(adjustedTime / audioDuration, 0.9999);
-      let cumulativeFraction = 0;
-      let targetAyahIndex = 0;
-
-      for (let i = 0; i < wordCounts.length; i++) {
-        const frac = wordCounts[i] / totalWords;
-        if (progress >= cumulativeFraction && progress < cumulativeFraction + frac) {
-          targetAyahIndex = i;
-          break;
-        }
-        cumulativeFraction += frac;
-      }
-
-      const activeAyah = ayahs[targetAyahIndex];
-      if (activeAyah && activeAyah.number !== currentPlayingAyah?.number) {
-        setCurrentPlayingAyah(activeAyah);
-        const el = ayahRefs.current[activeAyah.number];
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }
-    }
-  }, [audioCurrentTime, isPlaying, exactTimings, ayahs, audioDuration]);
+    // Disabled auto-jumping during continuous playback
+  }, []);
 
   // ── UI Prefs (also persisted) ──────────────────────────────────────────────
   const [isSidebarOpen,       setIsSidebarOpen]       = useState<boolean>(false);

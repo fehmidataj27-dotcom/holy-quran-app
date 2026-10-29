@@ -65,7 +65,14 @@ export function getReciterSurahUrl(
   }
 
   // Case 3: Standard folder-based pattern
-  const surahPadded = String(surahNumber).padStart(3, '0');
   const base = serverUrl.endsWith('/') ? serverUrl : `${serverUrl}/`;
+
+  // Quran.com CDN (qdc) paths use unpadded numbers like 1.mp3, 25.mp3
+  if (base.includes('/qdc/')) {
+    return `${base}${surahNumber}.mp3`;
+  }
+
+  // Standard 3-digit padded surah numbering (001.mp3, 025.mp3)
+  const surahPadded = String(surahNumber).padStart(3, '0');
   return `${base}${surahPadded}.mp3`;
 }

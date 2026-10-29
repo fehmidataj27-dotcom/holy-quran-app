@@ -98,7 +98,7 @@ export const RECITERS_LIST: Reciter[] = [
     arabicName: 'الشيخ عبد الرحمن السديس',
     style: 'حفص عن عاصم - مرتّل مكة النقي',
     category: 'Haramain',
-    serverUrl: 'https://download.quranicaudio.com/quran/abdurrahmaan_as_sudais/',
+    serverUrl: 'https://download.quranicaudio.com/qdc/abdurrahmaan_as_sudais/murattal/',
     qdcReciterId: 3,
     bitrate: '128 kbps',
     description: 'إمام وخطيب المسجد الحرام ورئيس الشؤون الدينية — المصحف المرتل الكامل بصوته الأصلي'
