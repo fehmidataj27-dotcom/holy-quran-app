@@ -1,3 +1,6 @@
+import { SHAKIR_QASMI_MAP } from '../data/shakirQasmiMap';
+import { WAHEED_ZAFAR_MAP } from '../data/waheedZafarMap';
+
 /**
  * SPECIAL_RECITER_SURAHS
  * For reciters whose audio is NOT available as a full 114-surah folder.
@@ -62,6 +65,22 @@ export function getReciterSurahUrl(
   // Case 2: Has a special override for this specific surah → use it
   if (specialMap?.[surahNumber]) {
     return specialMap[surahNumber];
+  }
+
+  // Case 2b: Qari Shakir Qasmi archive.org mapping
+  if (reciterId === 'qari_shakir_qasmi') {
+    const filename = SHAKIR_QASMI_MAP[surahNumber];
+    if (filename) {
+      return `https://archive.org/download/quran-shakir-qasmi/${encodeURIComponent(filename)}`;
+    }
+  }
+
+  // Case 2c: Qari Waheed Zafar Qasmi archive.org mapping
+  if (reciterId === 'qari_waheed_zafar_qasmi') {
+    const filename = WAHEED_ZAFAR_MAP[surahNumber];
+    if (filename) {
+      return `https://archive.org/download/AlQuranWithUrduTranslation_Recitation_By_QariWaheedZafarQasmi_Translation_By_Mau/${encodeURIComponent(filename)}`;
+    }
   }
 
   // Case 3: Standard folder-based pattern

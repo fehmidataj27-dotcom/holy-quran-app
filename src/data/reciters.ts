@@ -50,8 +50,7 @@ export const RECITERS_LIST: Reciter[] = [
     arabicName: 'قاری وحید ظفر قاسمی',
     style: 'تجوید و ترتیل لحنیہ عذبہ',
     category: 'Pakistan',
-    // verified: https://download.quranicaudio.com/quran/waheed_zafar_qasmi_wbw/001.mp3
-    serverUrl: 'https://download.quranicaudio.com/quran/waheed_zafar_qasmi_wbw/',
+    serverUrl: 'https://archive.org/download/AlQuranWithUrduTranslation_Recitation_By_QariWaheedZafarQasmi_Translation_By_Mau/',
     bitrate: '128 kbps',
     description: 'تمغہ امتیاز یافتہ، پاکستان کی تاریخ کے سب سے پیارے اور دلکش لحن والے قاری'
   },
@@ -61,7 +60,6 @@ export const RECITERS_LIST: Reciter[] = [
     arabicName: 'قاری سید صداقت علی',
     style: 'تجوید و لہجہ مصریہ و پاکستانی',
     category: 'Pakistan',
-    // verified: https://download.quranicaudio.com/quran/sadaqat_ali/001.mp3
     serverUrl: 'https://download.quranicaudio.com/quran/sadaqat_ali/',
     bitrate: '128 kbps',
     description: 'پاکستان کے بین الاقوامی شہرت یافتہ قاری، پرائم ٹی وی اور پی ٹی وی کے معروف استاد القراء'
@@ -72,8 +70,7 @@ export const RECITERS_LIST: Reciter[] = [
     arabicName: 'قاری شاکر قاسمی',
     style: 'تجوید محکم و صوت شجی',
     category: 'Pakistan',
-    // verified: https://download.quranicaudio.com/quran/shakir_qasmi/001.mp3
-    serverUrl: 'https://download.quranicaudio.com/quran/shakir_qasmi/',
+    serverUrl: 'https://archive.org/download/quran-shakir-qasmi/',
     bitrate: '128 kbps',
     description: 'ریڈیو پاکستان اور بین الاقوامی محافل کے روح رواں اور پاکستان کے مایہ ناز قاری'
   },
@@ -293,8 +290,7 @@ export const RECITERS_LIST: Reciter[] = [
     arabicName: 'الشيخ مصطفى إسماعيل',
     style: 'حفص عن عاصم - إمام المقامات والتصوير القرآنی',
     category: 'Egypt',
-    // verified: https://server8.mp3quran.net/mustfa/001.mp3
-    serverUrl: 'https://server8.mp3quran.net/mustfa/',
+    serverUrl: 'https://cdn.mp3quran.net/audio/mustafa-ismail/r1/',
     bitrate: '128 kbps',
     description: 'قارئ الملوك والرؤساء، رائد تصوير المعانی بالصوت'
   },
@@ -308,7 +304,6 @@ export const RECITERS_LIST: Reciter[] = [
     arabicName: 'الشيخ الزين محمد أحمد',
     style: 'حفص عن عاصم - النبرة السودانية الشجية',
     category: 'Global',
-    // verified: https://server9.mp3quran.net/alzain/001.mp3
     serverUrl: 'https://server9.mp3quran.net/alzain/',
     bitrate: '128 kbps',
     description: 'القارئ السوداني الأشهر، تلاوة روحانية تأخذ بمجامع القلوب'
@@ -319,8 +314,7 @@ export const RECITERS_LIST: Reciter[] = [
     arabicName: 'الشيخ وديع اليمني',
     style: 'حفص عن عاصم - عذب وندِيّ',
     category: 'Global',
-    // verified: https://server6.mp3quran.net/wdh/001.mp3
-    serverUrl: 'https://server6.mp3quran.net/wdh/',
+    serverUrl: 'https://cdn.mp3quran.net/audio/wadee-yamani/r1/',
     bitrate: '128 kbps',
     description: 'صوت ملائکی عذب وإتقان رفيع'
   }
