@@ -1,0 +1,88 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #070d17;
+    color: #e2e8f0;
+    font-family: 'Outfit', sans-serif;
+  }
+}
+
+/* Custom Scrollbar for Luxury Islamic Look */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0b1321;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #253349;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #d4af37;
+}
+
+/* Tajweed Color Coding Standards */
+/* 1. غنہ (Ghunnah): سرخ رنگ - RED */
+.tajweed-ghunnah {
+  color: #ef4444 !important; /* Red */
+  font-weight: 700;
+  text-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+}
+
+/* 2. ادغام (Idgham): گلابی رنگ - PINK */
+.tajweed-idgham {
+  color: #ec4899 !important; /* Pink */
+  font-weight: 700;
+  text-shadow: 0 0 10px rgba(236, 72, 153, 0.3);
+}
+
+/* 3. مد (Madd): گولڈن / عنبری رنگ */
+.tajweed-madd-lazim {
+  color: #f59e0b !important; /* Amber / Gold */
+  font-weight: 700;
+  border-bottom: 2px solid rgba(245, 158, 11, 0.5);
+}
+
+/* 4. قلقلہ (Qalqalah): آسمانی نیلا رنگ */
+.tajweed-qalqalah {
+  color: #0ea5e9 !important; /* Sky Blue */
+  font-weight: 700;
+}
+
+/* 5. تفخیم (Tafkheem): زمردی سبز رنگ */
+.tajweed-tafkheem {
+  color: #10b981 !important; /* Green */
+  font-weight: 600;
+}
+
+/* Arabic Ayah Font Styling */
+.arabic-quran-text {
+  font-family: 'Amiri Quran', 'Scheherazade New', 'Noto Naskh Arabic', serif;
+  line-height: 2.4;
+  word-spacing: 4px;
+  letter-spacing: 0.5px;
+}
+
+.urdu-translation-text {
+  font-family: 'Noto Nastaliq Urdu', serif;
+  line-height: 2.2;
+}
+
+/* Gold Gradient Accents */
+.gold-gradient-text {
+  background: linear-gradient(135deg, #fef08a 0%, #d4af37 50%, #996515 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gold-border-glow {
+  box-shadow: 0 0 25px rgba(212, 175, 55, 0.15);
+}
