@@ -1,0 +1,21 @@
+{
+  "name": "القرآن الكريم - Tajweed Quran & Audio",
+  "short_name": "القرآن الكريم",
+  "description": "Holy Quran with Tajweed coloring, Urdu translation and recitations from 25+ renowned global Qaris",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#080d14",
+  "theme_color": "#d4af37",
+  "lang": "ur",
+  "dir": "rtl",
+  "categories": ["books", "education", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

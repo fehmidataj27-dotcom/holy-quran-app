@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="120" fill="#0b1320"/>
+  <circle cx="256" cy="256" r="210" fill="none" stroke="#d4af37" stroke-width="6" opacity="0.6"/>
+  <circle cx="256" cy="256" r="190" fill="none" stroke="#d4af37" stroke-width="2" stroke-dasharray="8 8" opacity="0.4"/>
+  
+  <!-- Quran Book Open Shape -->
+  <path d="M100 370 C160 350, 220 360, 256 380 C292 360, 352 350, 412 370 L412 180 C352 160, 292 170, 256 190 C220 170, 160 160, 100 180 Z" fill="#142136" stroke="#d4af37" stroke-width="12" stroke-linejoin="round"/>
+  
+  <!-- Spine Line -->
+  <line x1="256" y1="190" x2="256" y2="380" stroke="#d4af37" stroke-width="10"/>
+  
+  <!-- Page Lines (Left) -->
+  <path d="M130 220 C170 210, 215 215, 235 225" stroke="#d4af37" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
+  <path d="M130 260 C170 250, 215 255, 235 265" stroke="#d4af37" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
+  <path d="M130 300 C170 290, 215 295, 235 305" stroke="#d4af37" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
+
+  <!-- Page Lines (Right) -->
+  <path d="M382 220 C342 210, 297 215, 277 225" stroke="#d4af37" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
+  <path d="M382 260 C342 250, 297 255, 277 265" stroke="#d4af37" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
+  <path d="M382 300 C342 290, 297 295, 277 305" stroke="#d4af37" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
+  
+  <!-- Islamic Star on Top -->
+  <path d="M256 95 L263 118 L287 118 L268 132 L275 155 L256 141 L237 155 L244 132 L225 118 L249 118 Z" fill="#d4af37"/>
+</svg>
