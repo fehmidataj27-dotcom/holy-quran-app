@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "app.vercel.holy_quran_app_chi.twa",
+    "sha256_cert_fingerprints": ["AA:C3:4B:55:38:9E:02:E0:AF:40:1B:C1:09:51:E7:93:3D:92:B6:55:16:5A:6F:C3:C3:B0:9F:98:CD:7B:EC:E7"]
+  }
+}]
