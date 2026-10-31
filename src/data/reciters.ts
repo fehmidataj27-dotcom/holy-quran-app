@@ -281,6 +281,17 @@ export const RECITERS_LIST: Reciter[] = [
     description: 'صاحب الصوت الشجي الخاشع، من أشهر وأعذب أصوات مصر والعالم الإسلامي',
     hasFullQuran: true
   },
+    {
+      id: 'alaa_aql',
+      name: 'Qari Alaa Aql',
+      arabicName: 'القارئ علاء عقل',
+      style: 'حفص عن عاصم - تلاوة هادئة خاشعة تأسر القلوب',
+      category: 'Contemporary',
+      serverUrl: 'https://archive.org/download/AlaaAql/',
+      bitrate: '128 kbps',
+      description: 'القارئ علاء عقل، صاحب الصوت الهادئ والتلاوات الخاشعة المؤثرة (المصحف كاملاً 114 سورة)',
+      hasFullQuran: true
+    },
 
   // ════════════════════════════════════════════════════════════════
   // 🌍 عالمی قراء (FULL 114 SURAHS)
