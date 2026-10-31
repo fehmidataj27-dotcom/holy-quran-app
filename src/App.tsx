@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Surah, Ayah, Reciter } from './types/quran';
 import { SURAH_LIST } from './data/surahs';
 import { RECITERS_LIST } from './data/reciters';
@@ -7,8 +7,6 @@ import { AudioStudioPlayer } from './components/AudioStudioPlayer';
 import { ReciterModal } from './components/ReciterModal';
 import { SurahSidebar } from './components/SurahSidebar';
 import { TajweedGuide } from './components/TajweedGuide';
-import { getAyahAudioUrl } from './utils/ayahAudioHelper';
-import { fetchSurahTimings, VerseTiming } from './utils/timingService';
 import {
   Menu,
   Sparkles,
@@ -54,19 +52,9 @@ export const App: React.FC = () => {
   const urduDictRef = useRef<Record<string, string>>({});
   const [urduLoaded, setUrduLoaded]         = useState<boolean>(false);
 
-  // Bottom Surah Player State
-  const [isPlaying,          setIsPlaying]          = useState<boolean>(false);
-  const [currentPlayingAyah, setCurrentPlayingAyah] = useState<Ayah | null>(null);
-
-  // Per-Ayah Audio Player State
-  const [activeAyahNum,    setActiveAyahNum]    = useState<number | null>(null);
-  const [ayahAudioMode,    setAyahAudioMode]    = useState<'loop' | 'seq'>('loop');
-  const [ayahAudioLoading, setAyahAudioLoading] = useState<boolean>(false);
-  const ayahAudioRef = useRef<HTMLAudioElement | null>(null);
-
-  // Verse Timings for Surah Player Auto-Scroll
-  const [verseTimings, setVerseTimings] = useState<VerseTiming[]>([]);
-  const lastScrolledAyahRef = useRef<number | null>(null);
+  // Audio Playback State (Unified Ayah-by-Ayah Continuous Sync)
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [currentAyahIndex, setCurrentAyahIndex] = useState<number>(1); // 1-based index in current surah
 
   // UI Prefs
   const [isSidebarOpen,       setIsSidebarOpen]       = useState<boolean>(false);
@@ -105,41 +93,6 @@ export const App: React.FC = () => {
     try { localStorage.setItem(LS_TRANSL, String(showTranslation)); } catch {}
   }, [showTranslation]);
 
-  // Load verse timings whenever reciter or surah changes
-  useEffect(() => {
-    let cancelled = false;
-    setVerseTimings([]);
-    lastScrolledAyahRef.current = null;
-
-    if (selectedReciter.qdcReciterId) {
-      fetchSurahTimings(selectedReciter.qdcReciterId, selectedSurah.number).then(timings => {
-        if (!cancelled && timings && timings.length > 0) {
-          setVerseTimings(timings);
-        }
-      });
-    }
-
-    return () => { cancelled = true; };
-  }, [selectedReciter.qdcReciterId, selectedSurah.number]);
-
-  // Pre-calculate cumulative character lengths for exact word-by-word timing when millisecond timings aren't available
-  const ayahCumulativeRatio = useMemo(() => {
-    if (!ayahs.length) return [];
-    const lengths = ayahs.map(a => Math.max(10, a.text.replace(/\s+/g, '').length));
-    const totalChars = lengths.reduce((acc, len) => acc + len, 0);
-    let run = 0;
-    return lengths.map((len, idx) => {
-      const fromRatio = run / totalChars;
-      run += len;
-      const toRatio = run / totalChars;
-      return {
-        ayahNumber: ayahs[idx].numberInSurah,
-        fromRatio,
-        toRatio
-      };
-    });
-  }, [ayahs]);
-
   // Load Urdu translation
   useEffect(() => {
     fetch('/urdu.json')
@@ -157,24 +110,11 @@ export const App: React.FC = () => {
       .catch(err => console.error('Could not load urdu translation', err));
   }, []);
 
-  // Stop per-ayah audio
-  const stopAyahAudio = useCallback(() => {
-    if (ayahAudioRef.current) {
-      ayahAudioRef.current.pause();
-      ayahAudioRef.current.src = '';
-      ayahAudioRef.current = null;
-    }
-    setActiveAyahNum(null);
-    setAyahAudioLoading(false);
-  }, []);
-
   // Load Surah Ayahs
   useEffect(() => {
     let cancelled = false;
     setIsLoadingAyahs(true);
-    setCurrentPlayingAyah(null);
-    lastScrolledAyahRef.current = null;
-    stopAyahAudio();
+    setCurrentAyahIndex(1);
     ayahRefs.current = {};
 
     async function loadSurah() {
@@ -209,140 +149,55 @@ export const App: React.FC = () => {
     loadSurah();
     window.scrollTo({ top: 0, behavior: 'smooth' });
     return () => { cancelled = true; };
-  }, [selectedSurah.number, urduLoaded, stopAyahAudio]);
+  }, [selectedSurah.number, urduLoaded]);
 
-  // Play per-ayah audio handler
-  const playAyahAudioAt = useCallback((ayahNum: number, mode: 'loop' | 'seq') => {
-    // Pause full surah player
-    setIsPlaying(false);
-    setCurrentPlayingAyah(null);
-
-    if (ayahAudioRef.current) {
-      ayahAudioRef.current.pause();
-      ayahAudioRef.current = null;
-    }
-
-    const url = getAyahAudioUrl(selectedReciter.id, selectedSurah.number, ayahNum);
-    const audio = new Audio(url);
-    ayahAudioRef.current = audio;
-    setActiveAyahNum(ayahNum);
-    setAyahAudioMode(mode);
-    setAyahAudioLoading(true);
-
-    // Scroll to the playing ayah smoothly
-    const el = ayahRefs.current[ayahNum];
+  // Smooth auto-scroll: ONLY when the currentAyahIndex changes and audio is playing
+  useEffect(() => {
+    if (!isPlaying) return;
+    const el = ayahRefs.current[currentAyahIndex];
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
+  }, [currentAyahIndex, isPlaying]);
 
-    audio.oncanplay = () => {
-      setAyahAudioLoading(false);
-    };
-
-    audio.onended = () => {
-      if (mode === 'loop') {
-        // Repeat the same ayah
-        audio.currentTime = 0;
-        audio.play().catch(console.error);
-      } else {
-        // Sequential mode: only when the last word of this ayah finishes, advance to the next ayah!
-        if (ayahNum < selectedSurah.numberOfAyahs) {
-          playAyahAudioAt(ayahNum + 1, 'seq');
-        } else {
-          stopAyahAudio();
-        }
-      }
-    };
-
-    audio.onerror = () => {
-      setAyahAudioLoading(false);
-      stopAyahAudio();
-    };
-
-    audio.play().catch(err => {
-      console.error('Audio playback failed:', err);
-      setAyahAudioLoading(false);
-      stopAyahAudio();
-    });
-  }, [selectedReciter.id, selectedSurah.number, selectedSurah.numberOfAyahs, stopAyahAudio]);
-
-  // User click on individual AyahCard play button
-  const handlePlayAyah = useCallback((ayah: Ayah) => {
-    if (activeAyahNum === ayah.numberInSurah) {
-      if (ayahAudioMode === 'loop') {
-        // Switch to sequential mode
-        playAyahAudioAt(ayah.numberInSurah, 'seq');
-      } else {
-        // Stop
-        stopAyahAudio();
-      }
-    } else {
-      // First click: loop this ayah
-      playAyahAudioAt(ayah.numberInSurah, 'loop');
-    }
-  }, [activeAyahNum, ayahAudioMode, playAyahAudioAt, stopAyahAudio]);
-
-  // Auto-scroll handler during full surah playback
-  // Only transitions to the next ayah when the previous ayah has finished!
-  const handleSurahTimeUpdate = useCallback((currentTimeSec: number, durationSec: number) => {
-    if (!isPlaying || activeAyahNum !== null) return;
-    const currentMs = currentTimeSec * 1000;
-
-    let activeNum: number | null = null;
-
-    if (verseTimings.length > 0) {
-      // Exact millisecond timing check (from Quran.com official CDN)
-      const currentVt = verseTimings.find(
-        vt => currentMs >= vt.timestampFrom && currentMs < vt.timestampTo
-      );
-      if (currentVt) {
-        activeNum = currentVt.verseNumber;
-      }
-    } else if (durationSec > 0 && ayahCumulativeRatio.length > 0) {
-      // Word/character weighted proportional timing
-      const progressRatio = currentTimeSec / durationSec;
-      const found = ayahCumulativeRatio.find(
-        r => progressRatio >= r.fromRatio && progressRatio < r.toRatio
-      );
-      if (found) {
-        activeNum = found.ayahNumber;
-      }
-    }
-
-    if (activeNum && activeNum !== lastScrolledAyahRef.current) {
-      lastScrolledAyahRef.current = activeNum;
-      const foundAyah = ayahs.find(a => a.numberInSurah === activeNum) || null;
-      setCurrentPlayingAyah(foundAyah);
-
-      // Smooth scroll only when the new ayah actually starts
-      const el = ayahRefs.current[activeNum];
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    }
-  }, [isPlaying, activeAyahNum, verseTimings, ayahCumulativeRatio, ayahs]);
-
-  // Bottom player controls
+  // Audio Playback Handlers
   const handleTogglePlay = useCallback(() => {
-    if (!isPlaying) {
-      stopAyahAudio();
-    }
     setIsPlaying(p => !p);
-  }, [isPlaying, stopAyahAudio]);
+  }, []);
+
+  const handleAyahChange = useCallback((newAyahNum: number) => {
+    setCurrentAyahIndex(newAyahNum);
+    setIsPlaying(true);
+    const el = ayahRefs.current[newAyahNum];
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, []);
+
+  // When user clicks the play button on a specific AyahCard
+  const handlePlayAyah = useCallback((ayah: Ayah) => {
+    if (currentAyahIndex === ayah.numberInSurah && isPlaying) {
+      // Pause
+      setIsPlaying(false);
+    } else {
+      // Start this exact ayah
+      handleAyahChange(ayah.numberInSurah);
+    }
+  }, [currentAyahIndex, isPlaying, handleAyahChange]);
 
   const handleNextSurah = useCallback(() => {
-    stopAyahAudio();
     const nextIdx = selectedSurah.number % 114;
     setSelectedSurah(SURAH_LIST[nextIdx]);
+    setCurrentAyahIndex(1);
     setIsPlaying(true);
-  }, [selectedSurah.number, stopAyahAudio]);
+  }, [selectedSurah.number]);
 
   const handlePrevSurah = useCallback(() => {
-    stopAyahAudio();
     const prevIdx = selectedSurah.number - 2 < 0 ? 113 : selectedSurah.number - 2;
     setSelectedSurah(SURAH_LIST[prevIdx]);
+    setCurrentAyahIndex(1);
     setIsPlaying(true);
-  }, [selectedSurah.number, stopAyahAudio]);
+  }, [selectedSurah.number]);
 
   const handleToggleBookmark = useCallback((ayah: Ayah) => {
     setBookmarks(prev =>
@@ -353,20 +208,19 @@ export const App: React.FC = () => {
   }, []);
 
   const handleSelectSurah = useCallback((surah: Surah) => {
-    stopAyahAudio();
     setSelectedSurah(surah);
+    setCurrentAyahIndex(1);
     setIsPlaying(false);
-    setCurrentPlayingAyah(null);
-    lastScrolledAyahRef.current = null;
     setIsSidebarOpen(false);
-  }, [stopAyahAudio]);
+  }, []);
 
   const handleSelectReciter = useCallback((reciter: Reciter) => {
-    stopAyahAudio();
     setSelectedReciter(reciter);
     setIsReciterModalOpen(false);
     setIsPlaying(true);
-  }, [stopAyahAudio]);
+  }, []);
+
+  const currentPlayingAyah = ayahs.find(a => a.numberInSurah === currentAyahIndex) || null;
 
   return (
     <div className="min-h-screen bg-[#070d17] text-slate-100 flex pb-32">
@@ -497,14 +351,7 @@ export const App: React.FC = () => {
             <div className="space-y-4">
               {ayahs.map(ayah => {
                 let playState: AyahPlayState = 'idle';
-                
-                // If per-ayah player is active on this ayah
-                if (activeAyahNum === ayah.numberInSurah) {
-                  if (ayahAudioLoading) playState = 'loading';
-                  else if (ayahAudioMode === 'loop') playState = 'playing_loop';
-                  else if (ayahAudioMode === 'seq') playState = 'playing_seq';
-                } else if (isPlaying && currentPlayingAyah?.numberInSurah === ayah.numberInSurah) {
-                  // If full surah audio player is playing this exact ayah
+                if (isPlaying && currentAyahIndex === ayah.numberInSurah) {
                   playState = 'playing_seq';
                 }
 
@@ -559,7 +406,7 @@ export const App: React.FC = () => {
         onSelectSurah={handleSelectSurah}
       />
 
-      {/* Persistent Audio Player for Full Surah */}
+      {/* Unified Audio Studio Player with 100% Exact Ayah-by-Ayah Playback */}
       <AudioStudioPlayer
         currentReciter={selectedReciter}
         currentSurah={selectedSurah}
@@ -569,7 +416,8 @@ export const App: React.FC = () => {
         onNextSurah={handleNextSurah}
         onPrevSurah={handlePrevSurah}
         onSelectReciterModal={() => setIsReciterModalOpen(true)}
-        onTimeUpdate={handleSurahTimeUpdate}
+        currentAyahIndex={currentAyahIndex}
+        onAyahChange={handleAyahChange}
       />
     </div>
   );

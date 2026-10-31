@@ -14,8 +14,7 @@ import {
   WifiOff,
   AlertCircle
 } from 'lucide-react';
-import { isAudioCached, cacheAudioOffline, getCachedAudioUrl } from '../utils/audioCache';
-import { getReciterSurahUrl } from '../utils/reciterAudioHelper';
+import { getAyahAudioUrl } from '../utils/ayahAudioHelper';
 
 interface AudioStudioPlayerProps {
   currentReciter: Reciter;
@@ -26,7 +25,8 @@ interface AudioStudioPlayerProps {
   onNextSurah: () => void;
   onPrevSurah: () => void;
   onSelectReciterModal: () => void;
-  onTimeUpdate?: (currentTime: number, duration: number) => void;
+  currentAyahIndex: number; // 1-based (1 to currentSurah.numberOfAyahs)
+  onAyahChange: (ayahNum: number) => void;
 }
 
 export const AudioStudioPlayer: React.FC<AudioStudioPlayerProps> = ({
@@ -38,7 +38,8 @@ export const AudioStudioPlayer: React.FC<AudioStudioPlayerProps> = ({
   onNextSurah,
   onPrevSurah,
   onSelectReciterModal,
-  onTimeUpdate
+  currentAyahIndex,
+  onAyahChange
 }) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [duration, setDuration] = useState<number>(0);
@@ -47,80 +48,27 @@ export const AudioStudioPlayer: React.FC<AudioStudioPlayerProps> = ({
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [isLoadingAudio, setIsLoadingAudio] = useState<boolean>(false);
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
-  const [isLooping, setIsLooping] = useState<boolean>(false);
-  const [playableSrc, setPlayableSrc] = useState<string>('');
-  const [surahNotAvailable, setSurahNotAvailable] = useState<boolean>(false);
+  const [isLooping, setIsLooping] = useState<boolean>(false); // loop current ayah or surah
   const [audioError, setAudioError] = useState<boolean>(false);
 
-  // ─── Compute the right URL for this reciter + surah ───────────────────────
-  const rawAudioUrl = getReciterSurahUrl(
+  // Compute exact URL for this specific ayah of this reciter
+  const ayahSrc = getAyahAudioUrl(
     currentReciter.id,
-    currentReciter.serverUrl,
-    currentSurah.number
+    currentSurah.number,
+    currentAyahIndex || 1
   );
 
-  // ─── Whenever reciter OR surah changes → reset & load new src immediately ─
-  useEffect(() => {
-    let cancelled = false;
-
-    // Reset all state for new surah
-    setSurahNotAvailable(false);
-    setAudioError(false);
-    setDuration(0);
-    setCurrentTime(0);
-    setIsLoadingAudio(false);
-
-    // Case 1: URL is empty → this surah is not mapped for this reciter
-    if (!rawAudioUrl) {
-      setSurahNotAvailable(true);
-      setPlayableSrc('');
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.removeAttribute('src');
-        audioRef.current.load();
-      }
-      return;
-    }
-
-    // Case 2: Check cache first (non-blocking — set remote URL immediately)
-    setPlayableSrc(rawAudioUrl);
-
-    // Upgrade to cached blob in background
-    (async () => {
-      try {
-        const cached = await isAudioCached(rawAudioUrl);
-        if (cancelled) return;
-        if (cached) {
-          const blobUrl = await getCachedAudioUrl(rawAudioUrl);
-          if (!cancelled && blobUrl) setPlayableSrc(blobUrl);
-        } else {
-          // Cache silently in background
-          cacheAudioOffline(rawAudioUrl).catch(() => {});
-        }
-      } catch {
-        // ignore cache errors
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [currentReciter.id, currentSurah.number]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ─── CRITICAL: When playableSrc changes, force the audio element to reload ─
-  // This is what prevents the old surah from continuing to play
+  // Reload audio element whenever ayahSrc changes
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    if (!playableSrc) {
-      audio.pause();
-      audio.removeAttribute('src');
-      audio.load();
-      return;
-    }
+    setAudioError(false);
+    setCurrentTime(0);
+    setDuration(0);
 
-    // Force reload with new source
-    audio.src = playableSrc;
-    audio.load(); // ← CRITICAL: without this, old surah keeps playing
+    audio.src = ayahSrc;
+    audio.load();
 
     if (isPlaying) {
       setIsLoadingAudio(true);
@@ -128,12 +76,12 @@ export const AudioStudioPlayer: React.FC<AudioStudioPlayerProps> = ({
         .then(() => setIsLoadingAudio(false))
         .catch(() => setIsLoadingAudio(false));
     }
-  }, [playableSrc]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ayahSrc]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ─── Handle Play/Pause toggle (separate from src change) ──────────────────
+  // Handle Play / Pause toggle
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio || !playableSrc || surahNotAvailable) return;
+    if (!audio) return;
 
     if (isPlaying) {
       setIsLoadingAudio(true);
@@ -146,19 +94,36 @@ export const AudioStudioPlayer: React.FC<AudioStudioPlayerProps> = ({
     }
   }, [isPlaying]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ─── Audio element event handlers ─────────────────────────────────────────
+  // CRITICAL: When the current ayah finishes, advance to the NEXT ayah!
+  // This guarantees 100% exact sync - ayah only changes when the reciter finishes its last word!
+  const handleAyahEnded = () => {
+    if (isLooping) {
+      // Loop same ayah
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play().catch(console.error);
+      }
+      return;
+    }
+
+    if (currentAyahIndex < currentSurah.numberOfAyahs) {
+      onAyahChange(currentAyahIndex + 1);
+    } else {
+      // End of surah -> advance to next surah
+      onNextSurah();
+    }
+  };
+
   const handleTimeUpdate = () => {
     if (audioRef.current) {
-      const t = audioRef.current.currentTime;
-      const d = audioRef.current.duration;
-      setCurrentTime(t);
-      if (onTimeUpdate && d) onTimeUpdate(t, d);
+      setCurrentTime(audioRef.current.currentTime);
+      setDuration(audioRef.current.duration || 0);
     }
   };
 
   const handleLoadedMetadata = () => {
     if (audioRef.current) {
-      setDuration(audioRef.current.duration);
+      setDuration(audioRef.current.duration || 0);
       setIsLoadingAudio(false);
     }
   };
@@ -170,20 +135,17 @@ export const AudioStudioPlayer: React.FC<AudioStudioPlayerProps> = ({
 
   const handleError = () => {
     setIsLoadingAudio(false);
-    // If audio fails to load (404 / network error) → mark as not available
-    if (playableSrc) {
-      setAudioError(true);
-      setSurahNotAvailable(true);
-    }
+    setAudioError(true);
   };
 
   const handleWaiting = () => setIsLoadingAudio(true);
 
-  // ─── Controls ─────────────────────────────────────────────────────────────
+  // Controls
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const time = parseFloat(e.target.value);
-    setCurrentTime(time);
-    if (audioRef.current) audioRef.current.currentTime = time;
+    const targetAyah = parseInt(e.target.value, 10);
+    if (targetAyah >= 1 && targetAyah <= currentSurah.numberOfAyahs) {
+      onAyahChange(targetAyah);
+    }
   };
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -214,46 +176,37 @@ export const AudioStudioPlayer: React.FC<AudioStudioPlayerProps> = ({
     return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  const unavailable = surahNotAvailable || audioError;
-
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#0a111c]/95 backdrop-blur-xl border-t border-[#d4af37]/25 shadow-2xl px-4 py-3 md:py-4 transition-all">
-      {/* Hidden audio element — src managed imperatively via useEffect */}
+      {/* Audio element for continuous ayah-by-ayah streaming */}
       <audio
         ref={audioRef}
-        preload="none"
+        preload="auto"
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onCanPlay={handleCanPlay}
         onWaiting={handleWaiting}
         onError={handleError}
-        onEnded={onNextSurah}
-        loop={isLooping}
+        onEnded={handleAyahEnded}
       />
 
-      {/* ── NOT AVAILABLE BANNER ── */}
-      {unavailable && (
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 mb-2 px-4 py-2 bg-amber-950/70 border border-amber-500/50 rounded-xl text-amber-200 text-xs">
+      {audioError && (
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 mb-2 px-4 py-2 bg-amber-950/70 border border-amber-500/50 rounded-xl text-amber-200 text-xs">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
-            <span>
-              یہ سورۃ ({currentSurah.name}) اس وقت{' '}
-              <strong>{currentReciter.arabicName || currentReciter.name}</strong>{' '}
-              کی ریکارڈنگ میں دستیاب نہیں۔
-            </span>
+            <span>آیت نمبر {currentAyahIndex} کی آڈیو لوڈ کرنے میں دشواری پیش آئی۔ اگلی آیت پر منتقل ہو رہے ہیں...</span>
           </div>
           <button
-            onClick={onSelectReciterModal}
+            onClick={() => onAyahChange(currentAyahIndex + 1)}
             className="px-3 py-1 bg-[#d4af37] text-black font-semibold rounded-lg hover:bg-[#e5c158] transition-all shrink-0"
           >
-            دستیاب سورتیں یا مکمل قرآن والے قاری منتخب کریں
+            اگلی آیت چلائیں
           </button>
         </div>
       )}
 
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
-
-        {/* ── LEFT: Reciter & Surah Info ── */}
+        {/* LEFT: Reciter & Surah Info */}
         <div className="flex items-center space-x-3 w-full md:w-1/3 justify-between md:justify-start">
           <div
             onClick={onSelectReciterModal}
@@ -270,7 +223,7 @@ export const AudioStudioPlayer: React.FC<AudioStudioPlayerProps> = ({
                   {currentReciter.arabicName || currentReciter.name}
                 </span>
                 <span className="text-[10px] px-2 py-0.5 bg-[#d4af37]/20 text-[#d4af37] rounded-full border border-[#d4af37]/30 shrink-0">
-                  تبدیل قاری
+                  آیت {currentAyahIndex} از {currentSurah.numberOfAyahs}
                 </span>
               </div>
               <p className="text-xs text-slate-400 truncate">
@@ -280,8 +233,8 @@ export const AudioStudioPlayer: React.FC<AudioStudioPlayerProps> = ({
           </div>
 
           <a
-            href={(!unavailable && playableSrc) ? playableSrc : '#'}
-            download={`Surah_${currentSurah.number}_${currentReciter.name}.mp3`}
+            href={ayahSrc}
+            download={`Surah_${currentSurah.number}_Ayah_${currentAyahIndex}.mp3`}
             target="_blank"
             rel="noreferrer"
             title="ڈاؤنلوڈ MP3"
@@ -291,41 +244,39 @@ export const AudioStudioPlayer: React.FC<AudioStudioPlayerProps> = ({
           </a>
         </div>
 
-        {/* ── CENTER: Controls & Timeline ── */}
+        {/* CENTER: Controls & Verse Timeline Slider */}
         <div className="flex flex-col items-center w-full md:w-2/5">
           <div className="flex items-center space-x-4 mb-1">
-
             {/* Speed */}
             <button
               onClick={cycleSpeed}
               className="text-xs font-semibold px-2 py-1 rounded bg-[#162236] text-slate-300 hover:text-[#d4af37] border border-slate-700/50"
-              title="سپیڈ تبدیل کریں"
+              title="رفتار تبدیل کریں"
             >
               {playbackSpeed}x
             </button>
 
-            {/* Prev */}
+            {/* Prev Ayah / Prev Surah */}
             <button
-              onClick={onPrevSurah}
+              onClick={() => {
+                if (currentAyahIndex > 1) {
+                  onAyahChange(currentAyahIndex - 1);
+                } else {
+                  onPrevSurah();
+                }
+              }}
               className="p-2 text-slate-300 hover:text-white hover:scale-110 transition-all"
-              title="پچھلی سورۃ"
+              title="پچھلی آیت"
             >
               <SkipBack className="w-5 h-5" />
             </button>
 
-            {/* ── Play/Pause ── */}
+            {/* Play/Pause */}
             <button
-              onClick={unavailable ? undefined : onTogglePlay}
-              disabled={unavailable}
-              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-lg ${
-                unavailable
-                  ? 'bg-slate-700 cursor-not-allowed opacity-50'
-                  : 'bg-gradient-to-tr from-[#b8860b] via-[#d4af37] to-[#f5d77f] text-black shadow-[#d4af37]/25 hover:scale-105 active:scale-95'
-              }`}
+              onClick={onTogglePlay}
+              className="w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-lg bg-gradient-to-tr from-[#b8860b] via-[#d4af37] to-[#f5d77f] text-black shadow-[#d4af37]/25 hover:scale-105 active:scale-95"
             >
-              {unavailable ? (
-                <WifiOff className="w-5 h-5 text-slate-400" />
-              ) : isLoadingAudio ? (
+              {isLoadingAudio ? (
                 <Loader2 className="w-6 h-6 animate-spin text-black" />
               ) : isPlaying ? (
                 <Pause className="w-6 h-6 fill-black" />
@@ -334,44 +285,53 @@ export const AudioStudioPlayer: React.FC<AudioStudioPlayerProps> = ({
               )}
             </button>
 
-            {/* Next */}
+            {/* Next Ayah / Next Surah */}
             <button
-              onClick={onNextSurah}
+              onClick={() => {
+                if (currentAyahIndex < currentSurah.numberOfAyahs) {
+                  onAyahChange(currentAyahIndex + 1);
+                } else {
+                  onNextSurah();
+                }
+              }}
               className="p-2 text-slate-300 hover:text-white hover:scale-110 transition-all"
-              title="اگلی سورۃ"
+              title="اگلی آیت"
             >
               <SkipForward className="w-5 h-5" />
             </button>
 
-            {/* Loop */}
+            {/* Loop Ayah */}
             <button
               onClick={() => setIsLooping(!isLooping)}
               className={`p-2 transition-all ${
-                isLooping ? 'text-[#d4af37]' : 'text-slate-400 hover:text-slate-200'
+                isLooping ? 'text-[#d4af37] scale-110' : 'text-slate-400 hover:text-slate-200'
               }`}
-              title="تکرار (Repeat Surah)"
+              title={isLooping ? 'لوپ بند کریں' : 'اسی آیت کو بار بار دہرائیں (Loop Ayah)'}
             >
               <Repeat className="w-4 h-4" />
             </button>
           </div>
 
-          {/* Progress Bar */}
+          {/* Verses Scrubber Bar: 1 to numberOfAyahs */}
           <div className="w-full flex items-center space-x-3 text-xs text-slate-400">
-            <span className="w-10 text-right font-mono">{formatTime(currentTime)}</span>
+            <span className="w-12 text-right font-mono text-[11px] text-[#d4af37]">
+              آیت {currentAyahIndex}
+            </span>
             <input
               type="range"
-              min={0}
-              max={duration || 100}
-              value={currentTime}
+              min={1}
+              max={currentSurah.numberOfAyahs}
+              value={currentAyahIndex}
               onChange={handleSeek}
-              disabled={unavailable}
-              className="w-full h-1.5 bg-slate-700/80 rounded-lg appearance-none cursor-pointer accent-[#d4af37] disabled:opacity-30"
+              className="w-full h-1.5 bg-slate-700/80 rounded-lg appearance-none cursor-pointer accent-[#d4af37]"
             />
-            <span className="w-10 text-left font-mono">{formatTime(duration)}</span>
+            <span className="w-12 text-left font-mono text-[11px] text-slate-400">
+              {currentSurah.numberOfAyahs} کل
+            </span>
           </div>
         </div>
 
-        {/* ── RIGHT: Volume & Download ── */}
+        {/* RIGHT: Volume & Download */}
         <div className="hidden md:flex items-center justify-end space-x-3 w-1/3">
           <button onClick={toggleMute} className="text-slate-400 hover:text-white transition-colors">
             {isMuted || volume === 0 ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
@@ -386,11 +346,11 @@ export const AudioStudioPlayer: React.FC<AudioStudioPlayerProps> = ({
             className="w-20 lg:w-28 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[#d4af37]"
           />
           <a
-            href={(!unavailable && playableSrc) ? playableSrc : '#'}
-            download={`Surah_${currentSurah.number}_${currentReciter.name}.mp3`}
+            href={ayahSrc}
+            download={`Surah_${currentSurah.number}_Ayah_${currentAyahIndex}.mp3`}
             target="_blank"
             rel="noreferrer"
-            title="تلاوت ڈاؤنلوڈ کریں (Download MP3)"
+            title="آیت MP3 ڈاؤنلوڈ کریں"
             className="p-2 rounded-xl bg-[#142032] border border-slate-700/60 text-slate-300 hover:text-[#d4af37] hover:border-[#d4af37]/40 transition-all flex items-center space-x-1"
           >
             <Download className="w-4 h-4" />
