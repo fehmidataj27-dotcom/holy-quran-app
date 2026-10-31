@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Surah, Ayah, Reciter } from './types/quran';
 import { SURAH_LIST } from './data/surahs';
 import { RECITERS_LIST } from './data/reciters';
-import { AyahCard } from './components/AyahCard';
+import { AyahCard, AyahPlayState } from './components/AyahCard';
 import { AudioStudioPlayer } from './components/AudioStudioPlayer';
 import { ReciterModal } from './components/ReciterModal';
 import { SurahSidebar } from './components/SurahSidebar';
 import { TajweedGuide } from './components/TajweedGuide';
-import { fetchSurahTimings, VerseTiming } from './utils/timingService';
+import { getAyahAudioUrl } from './utils/ayahAudioHelper';
 import {
   Menu,
   Sparkles,
@@ -19,7 +19,6 @@ import {
   Info
 } from 'lucide-react';
 
-// ─── LocalStorage keys ─────────────────────────────────────────────────────
 const LS_RECITER   = 'quran_selected_reciter_id';
 const LS_SURAH     = 'quran_selected_surah_number';
 const LS_FONT      = 'quran_font_size';
@@ -34,7 +33,6 @@ function getSavedReciter(): Reciter {
       if (found) return found;
     }
   } catch {}
-  // Default to first full-Quran reciter (Sheikh Abdul Rahman Al-Sudais)
   return RECITERS_LIST.find(r => r.hasFullQuran) || RECITERS_LIST[0];
 }
 
@@ -47,47 +45,26 @@ function getSavedSurah(): Surah {
 }
 
 export const App: React.FC = () => {
-  // ── Persisted Navigation State ─────────────────────────────────────────────
   const [selectedSurah,   setSelectedSurah]   = useState<Surah>(getSavedSurah);
   const [selectedReciter, setSelectedReciter] = useState<Reciter>(getSavedReciter);
 
-  // ── Quran Data ─────────────────────────────────────────────────────────────
   const [ayahs,          setAyahs]          = useState<Ayah[]>([]);
   const [isLoadingAyahs, setIsLoadingAyahs] = useState<boolean>(true);
   const urduDictRef = useRef<Record<string, string>>({});
   const [urduLoaded, setUrduLoaded]         = useState<boolean>(false);
 
-  // ── Audio State ────────────────────────────────────────────────────────────
+  // Bottom Surah Player State
   const [isPlaying,          setIsPlaying]          = useState<boolean>(false);
   const [currentPlayingAyah, setCurrentPlayingAyah] = useState<Ayah | null>(null);
-  const [audioCurrentTime,   setAudioCurrentTime]   = useState<number>(0);
-  const [audioDuration,      setAudioDuration]      = useState<number>(0);
 
-  // ── 100% Official Verse Timings from Quran.com CDN ─────────────────────────
-  const [exactTimings, setExactTimings] = useState<VerseTiming[]>([]);
+  // Per-Ayah Audio Player State
+  // ayahAudioMode: 'loop' (repeat single verse) or 'seq' (play consecutively)
+  const [activeAyahNum,    setActiveAyahNum]    = useState<number | null>(null);
+  const [ayahAudioMode,    setAyahAudioMode]    = useState<'loop' | 'seq'>('loop');
+  const [ayahAudioLoading, setAyahAudioLoading] = useState<boolean>(false);
+  const ayahAudioRef = useRef<HTMLAudioElement | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    setExactTimings([]);
-
-    if (selectedReciter.qdcReciterId) {
-      fetchSurahTimings(selectedReciter.qdcReciterId, selectedSurah.number).then(timings => {
-        if (!cancelled && timings.length) {
-          setExactTimings(timings);
-        }
-      });
-    }
-
-    return () => { cancelled = true; };
-  }, [selectedReciter.qdcReciterId, selectedSurah.number]);
-
-  // User requested: No automatic jumping/popping of ayahs during audio playback
-  // Only focus/scroll when user explicitly clicks an ayah to play or selects it
-  useEffect(() => {
-    // Disabled auto-jumping during continuous playback
-  }, []);
-
-  // ── UI Prefs (also persisted) ──────────────────────────────────────────────
+  // UI Prefs
   const [isSidebarOpen,       setIsSidebarOpen]       = useState<boolean>(false);
   const [isReciterModalOpen,  setIsReciterModalOpen]  = useState<boolean>(false);
   const [isTajweedGuideOpen,  setIsTajweedGuideOpen]  = useState<boolean>(false);
@@ -102,10 +79,8 @@ export const App: React.FC = () => {
   });
   const [bookmarks, setBookmarks] = useState<number[]>([]);
 
-  // ── Refs for auto-scroll ───────────────────────────────────────────────────
   const ayahRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
-  // ── Persist reciter to localStorage on every change ───────────────────────
   useEffect(() => {
     try { localStorage.setItem(LS_RECITER, selectedReciter.id); } catch {}
   }, [selectedReciter.id]);
@@ -126,7 +101,7 @@ export const App: React.FC = () => {
     try { localStorage.setItem(LS_TRANSL, String(showTranslation)); } catch {}
   }, [showTranslation]);
 
-  // ── Load Urdu translation JSON once ───────────────────────────────────────
+  // Load Urdu translation
   useEffect(() => {
     fetch('/urdu.json')
       .then(res => res.json())
@@ -143,11 +118,23 @@ export const App: React.FC = () => {
       .catch(err => console.error('Could not load urdu translation', err));
   }, []);
 
-  // ── Load Surah Ayahs from local JSON ──────────────────────────────────────
+  // Stop per-ayah audio
+  const stopAyahAudio = useCallback(() => {
+    if (ayahAudioRef.current) {
+      ayahAudioRef.current.pause();
+      ayahAudioRef.current.src = '';
+      ayahAudioRef.current = null;
+    }
+    setActiveAyahNum(null);
+    setAyahAudioLoading(false);
+  }, []);
+
+  // Load Surah Ayahs
   useEffect(() => {
     let cancelled = false;
     setIsLoadingAyahs(true);
     setCurrentPlayingAyah(null);
+    stopAyahAudio();
     ayahRefs.current = {};
 
     async function loadSurah() {
@@ -182,43 +169,97 @@ export const App: React.FC = () => {
     loadSurah();
     window.scrollTo({ top: 0, behavior: 'smooth' });
     return () => { cancelled = true; };
-  }, [selectedSurah.number, urduLoaded]);
+  }, [selectedSurah.number, urduLoaded, stopAyahAudio]);
 
-  // ── Auto-scroll: Only scroll when user explicitly clicks an ayah to play ───
-  // We do NOT auto-scroll based on estimated audio progress to avoid premature jumps
-  useEffect(() => {
-    if (!currentPlayingAyah) return;
-    const el = ayahRefs.current[currentPlayingAyah.number];
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  // Play per-ayah audio handler
+  const playAyahAudioAt = useCallback((ayahNum: number, mode: 'loop' | 'seq') => {
+    // If full surah is playing, pause it so they don't clash
+    setIsPlaying(false);
+
+    if (ayahAudioRef.current) {
+      ayahAudioRef.current.pause();
+      ayahAudioRef.current = null;
     }
-  }, [currentPlayingAyah?.number]);
 
-  // ── Audio controls ─────────────────────────────────────────────────────────
-  const handleTogglePlay = useCallback(() => setIsPlaying(p => !p), []);
+    const url = getAyahAudioUrl(selectedReciter.id, selectedSurah.number, ayahNum);
+    const audio = new Audio(url);
+    ayahAudioRef.current = audio;
+    setActiveAyahNum(ayahNum);
+    setAyahAudioMode(mode);
+    setAyahAudioLoading(true);
+
+    audio.oncanplay = () => {
+      setAyahAudioLoading(false);
+    };
+
+    audio.onended = () => {
+      if (mode === 'loop') {
+        // Repeat the same ayah
+        audio.currentTime = 0;
+        audio.play().catch(console.error);
+      } else {
+        // Sequential mode: advance to next ayah in this surah
+        if (ayahNum < selectedSurah.numberOfAyahs) {
+          playAyahAudioAt(ayahNum + 1, 'seq');
+        } else {
+          stopAyahAudio();
+        }
+      }
+    };
+
+    audio.onerror = () => {
+      setAyahAudioLoading(false);
+      stopAyahAudio();
+    };
+
+    audio.play().catch(err => {
+      console.error('Audio playback failed:', err);
+      setAyahAudioLoading(false);
+      stopAyahAudio();
+    });
+  }, [selectedReciter.id, selectedSurah.number, selectedSurah.numberOfAyahs, stopAyahAudio]);
+
+  // User click on individual AyahCard play button
+  // 1st click on ayah -> plays in loop mode (بار بار یہی آیت چلے گی)
+  // 2nd click on SAME ayah -> switches to sequential mode (اس سے آگے والی ساری آیات چلیں گی)
+  // 3rd click on SAME ayah -> stops
+  // Click on DIFFERENT ayah -> plays that ayah
+  const handlePlayAyah = useCallback((ayah: Ayah) => {
+    if (activeAyahNum === ayah.numberInSurah) {
+      if (ayahAudioMode === 'loop') {
+        // User clicked same ayah again -> switch to sequential mode
+        playAyahAudioAt(ayah.numberInSurah, 'seq');
+      } else {
+        // Already in seq mode -> stop
+        stopAyahAudio();
+      }
+    } else {
+      // First click on this ayah -> play in loop mode
+      playAyahAudioAt(ayah.numberInSurah, 'loop');
+    }
+  }, [activeAyahNum, ayahAudioMode, playAyahAudioAt, stopAyahAudio]);
+
+  // Bottom player controls
+  const handleTogglePlay = useCallback(() => {
+    if (!isPlaying) {
+      stopAyahAudio(); // Stop single ayah audio if starting full surah
+    }
+    setIsPlaying(p => !p);
+  }, [isPlaying, stopAyahAudio]);
 
   const handleNextSurah = useCallback(() => {
+    stopAyahAudio();
     const nextIdx = selectedSurah.number % 114;
     setSelectedSurah(SURAH_LIST[nextIdx]);
     setIsPlaying(true);
-  }, [selectedSurah.number]);
+  }, [selectedSurah.number, stopAyahAudio]);
 
   const handlePrevSurah = useCallback(() => {
+    stopAyahAudio();
     const prevIdx = selectedSurah.number - 2 < 0 ? 113 : selectedSurah.number - 2;
     setSelectedSurah(SURAH_LIST[prevIdx]);
     setIsPlaying(true);
-  }, [selectedSurah.number]);
-
-  const handlePlayAyah = useCallback((ayah: Ayah) => {
-    setCurrentPlayingAyah(ayah);
-    setIsPlaying(true);
-  }, []);
-
-  // Audio time callback — updates audioCurrentTime + audioDuration
-  const handleAudioTimeUpdate = useCallback((currentTime: number, duration: number) => {
-    setAudioCurrentTime(currentTime);
-    if (duration) setAudioDuration(duration);
-  }, []);
+  }, [selectedSurah.number, stopAyahAudio]);
 
   const handleToggleBookmark = useCallback((ayah: Ayah) => {
     setBookmarks(prev =>
@@ -229,22 +270,23 @@ export const App: React.FC = () => {
   }, []);
 
   const handleSelectSurah = useCallback((surah: Surah) => {
+    stopAyahAudio();
     setSelectedSurah(surah);
     setIsPlaying(false);
     setCurrentPlayingAyah(null);
     setIsSidebarOpen(false);
-  }, []);
+  }, [stopAyahAudio]);
 
   const handleSelectReciter = useCallback((reciter: Reciter) => {
+    stopAyahAudio();
     setSelectedReciter(reciter);
     setIsReciterModalOpen(false);
     setIsPlaying(true);
-  }, []);
+  }, [stopAyahAudio]);
 
   return (
     <div className="min-h-screen bg-[#070d17] text-slate-100 flex pb-32">
-
-      {/* ── 114 Surahs Sidebar ── */}
+      {/* 114 Surahs Sidebar */}
       <SurahSidebar
         selectedSurah={selectedSurah}
         onSelectSurah={handleSelectSurah}
@@ -252,9 +294,8 @@ export const App: React.FC = () => {
         onClose={() => setIsSidebarOpen(false)}
       />
 
-      {/* ── Main Content ── */}
+      {/* Main Content */}
       <div className="flex-1 lg:pl-80 flex flex-col min-w-0">
-
         {/* Top Navigation Bar */}
         <header className="sticky top-0 z-20 bg-[#0a121e]/95 backdrop-blur-xl border-b border-slate-800/80 px-4 md:px-8 py-3.5 flex items-center justify-between shadow-lg">
           <div className="flex items-center space-x-3">
@@ -276,7 +317,6 @@ export const App: React.FC = () => {
 
           {/* Quick Controls */}
           <div className="flex items-center space-x-2 sm:space-x-3">
-
             {/* Tajweed Toggle */}
             <button
               onClick={() => setTajweedEnabled(p => !p)}
@@ -334,9 +374,8 @@ export const App: React.FC = () => {
           </div>
         </header>
 
-        {/* ── Surah Content ── */}
+        {/* Surah Content */}
         <div className="p-4 md:p-8 max-w-5xl mx-auto w-full">
-
           {/* Tajweed Guide */}
           <TajweedGuide isOpen={isTajweedGuideOpen} onToggle={() => setIsTajweedGuideOpen(false)} />
 
@@ -346,7 +385,7 @@ export const App: React.FC = () => {
             <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-48 h-48 rounded-full bg-emerald-500/5 blur-3xl pointer-events-none" />
             <div className="relative z-10">
               <span className="inline-block text-xs uppercase tracking-widest text-[#d4af37] font-semibold mb-2">
-                سورة {selectedSurah.name} • {selectedSurah.revelationType === 'Meccan' ? 'مكية' : 'مدنية'}
+                سورۃ {selectedSurah.name} • {selectedSurah.revelationType === 'Meccan' ? 'مکیہ' : 'مدنیہ'}
               </span>
               <h1 className="text-3xl md:text-5xl font-bold text-white arabic-quran-text mb-3">
                 {selectedSurah.name}
@@ -368,27 +407,36 @@ export const App: React.FC = () => {
           {isLoadingAyahs ? (
             <div className="flex flex-col items-center justify-center py-24 space-y-4">
               <Loader2 className="w-10 h-10 animate-spin text-[#d4af37]" />
-              <p className="text-sm text-slate-400">آیات مبارکہ لوڈ کی جا رہی ہیں...</p>
+              <p className="text-sm text-slate-400">آیات مبارکہ لوڈ ہو رہی ہیں...</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {ayahs.map(ayah => (
-                <div
-                  key={ayah.number}
-                  ref={el => { ayahRefs.current[ayah.number] = el; }}
-                >
-                  <AyahCard
-                    ayah={ayah}
-                    isPlaying={isPlaying && currentPlayingAyah?.number === ayah.number}
-                    isBookmarked={bookmarks.includes(ayah.number)}
-                    tajweedEnabled={tajweedEnabled}
-                    fontSize={fontSize}
-                    showTranslation={showTranslation}
-                    onPlay={handlePlayAyah}
-                    onToggleBookmark={handleToggleBookmark}
-                  />
-                </div>
-              ))}
+              {ayahs.map(ayah => {
+                let playState: AyahPlayState = 'idle';
+                if (activeAyahNum === ayah.numberInSurah) {
+                  if (ayahAudioLoading) playState = 'loading';
+                  else if (ayahAudioMode === 'loop') playState = 'playing_loop';
+                  else if (ayahAudioMode === 'seq') playState = 'playing_seq';
+                }
+
+                return (
+                  <div
+                    key={ayah.number}
+                    ref={el => { ayahRefs.current[ayah.number] = el; }}
+                  >
+                    <AyahCard
+                      ayah={ayah}
+                      playState={playState}
+                      isBookmarked={bookmarks.includes(ayah.number)}
+                      tajweedEnabled={tajweedEnabled}
+                      fontSize={fontSize}
+                      showTranslation={showTranslation}
+                      onPlay={handlePlayAyah}
+                      onToggleBookmark={handleToggleBookmark}
+                    />
+                  </div>
+                );
+              })}
             </div>
           )}
 
@@ -413,7 +461,7 @@ export const App: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Reciter Modal ── */}
+      {/* Reciter Modal */}
       <ReciterModal
         isOpen={isReciterModalOpen}
         onClose={() => setIsReciterModalOpen(false)}
@@ -422,7 +470,7 @@ export const App: React.FC = () => {
         onSelectSurah={handleSelectSurah}
       />
 
-      {/* ── Persistent Audio Player ── */}
+      {/* Persistent Audio Player for Full Surah */}
       <AudioStudioPlayer
         currentReciter={selectedReciter}
         currentSurah={selectedSurah}
@@ -432,7 +480,6 @@ export const App: React.FC = () => {
         onNextSurah={handleNextSurah}
         onPrevSurah={handlePrevSurah}
         onSelectReciterModal={() => setIsReciterModalOpen(true)}
-        onTimeUpdate={handleAudioTimeUpdate}
       />
     </div>
   );
