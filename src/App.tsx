@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Surah, Ayah, Reciter } from './types/quran';
 import { SURAH_LIST } from './data/surahs';
 import { RECITERS_LIST } from './data/reciters';
@@ -121,24 +121,6 @@ export const App: React.FC = () => {
 
     return () => { cancelled = true; };
   }, [selectedReciter.qdcReciterId, selectedSurah.number]);
-
-  // Pre-calculate cumulative character lengths for exact word-by-word timing when millisecond timings aren't available
-  const ayahCumulativeRatio = useMemo(() => {
-    if (!ayahs.length) return [];
-    const lengths = ayahs.map(a => Math.max(10, a.text.replace(/\s+/g, '').length));
-    const totalChars = lengths.reduce((acc, len) => acc + len, 0);
-    let run = 0;
-    return lengths.map((len, idx) => {
-      const fromRatio = run / totalChars;
-      run += len;
-      const toRatio = run / totalChars;
-      return {
-        ayahNumber: ayahs[idx].numberInSurah,
-        fromRatio,
-        toRatio
-      };
-    });
-  }, [ayahs]);
 
   // Load Urdu translation
   useEffect(() => {
@@ -283,7 +265,7 @@ export const App: React.FC = () => {
   }, [activeAyahNum, ayahAudioMode, playAyahAudioAt, stopAyahAudio]);
 
   // Auto-scroll handler during full surah playback
-  // Only transitions to the next ayah when the previous ayah has finished!
+  // Only transitions to the next ayah when timestampTo of previous ayah is actually reached!
   const handleSurahTimeUpdate = useCallback((currentTimeSec: number, durationSec: number) => {
     if (!isPlaying || activeAyahNum !== null) return;
     const currentMs = currentTimeSec * 1000;
@@ -291,22 +273,20 @@ export const App: React.FC = () => {
     let activeNum: number | null = null;
 
     if (verseTimings.length > 0) {
-      // Exact millisecond timing check (from Quran.com official CDN)
+      // Exact millisecond timing check
       const currentVt = verseTimings.find(
         vt => currentMs >= vt.timestampFrom && currentMs < vt.timestampTo
       );
       if (currentVt) {
         activeNum = currentVt.verseNumber;
       }
-    } else if (durationSec > 0 && ayahCumulativeRatio.length > 0) {
-      // Word/character weighted proportional timing
-      const progressRatio = currentTimeSec / durationSec;
-      const found = ayahCumulativeRatio.find(
-        r => progressRatio >= r.fromRatio && progressRatio < r.toRatio
+    } else if (durationSec > 0 && ayahs.length > 0) {
+      // Proportional fallback
+      const idx = Math.min(
+        Math.floor((currentTimeSec / durationSec) * ayahs.length),
+        ayahs.length - 1
       );
-      if (found) {
-        activeNum = found.ayahNumber;
-      }
+      activeNum = ayahs[idx].numberInSurah;
     }
 
     if (activeNum && activeNum !== lastScrolledAyahRef.current) {
@@ -314,13 +294,13 @@ export const App: React.FC = () => {
       const foundAyah = ayahs.find(a => a.numberInSurah === activeNum) || null;
       setCurrentPlayingAyah(foundAyah);
 
-      // Smooth scroll only when the new ayah actually starts
+      // Smooth scroll only when the new ayah starts
       const el = ayahRefs.current[activeNum];
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     }
-  }, [isPlaying, activeAyahNum, verseTimings, ayahCumulativeRatio, ayahs]);
+  }, [isPlaying, activeAyahNum, verseTimings, ayahs]);
 
   // Bottom player controls
   const handleTogglePlay = useCallback(() => {
