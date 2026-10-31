@@ -270,6 +270,17 @@ export const RECITERS_LIST: Reciter[] = [
     description: 'قارئ الملوك والرؤساء، رائد تصوير المعانی بالصوت',
     hasFullQuran: true
   },
+  {
+    id: 'hasan_saleh',
+    name: 'Sheikh Hasan Saleh',
+    arabicName: 'الشيخ حسن صالح',
+    style: 'حفص عن عاصم - صوت شجي يريح القلوب',
+    category: 'Egypt',
+    serverUrl: 'https://cdn.mp3quran.net/audio/hassan-saleh/r1/',
+    bitrate: '128 kbps',
+    description: 'صاحب الصوت الشجي الخاشع، من أشهر وأعذب أصوات مصر والعالم الإسلامي',
+    hasFullQuran: true
+  },
 
   // ════════════════════════════════════════════════════════════════
   // 🌍 عالمی قراء (FULL 114 SURAHS)
