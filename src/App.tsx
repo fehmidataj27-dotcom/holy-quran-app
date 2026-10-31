@@ -8,7 +8,6 @@ import { ReciterModal } from './components/ReciterModal';
 import { SurahSidebar } from './components/SurahSidebar';
 import { TajweedGuide } from './components/TajweedGuide';
 import { getAyahAudioUrl } from './utils/ayahAudioHelper';
-import { fetchSurahTimings, VerseTiming } from './utils/timingService';
 import {
   Menu,
   Sparkles,
@@ -59,14 +58,11 @@ export const App: React.FC = () => {
   const [currentPlayingAyah, setCurrentPlayingAyah] = useState<Ayah | null>(null);
 
   // Per-Ayah Audio Player State
+  // ayahAudioMode: 'loop' (repeat single verse) or 'seq' (play consecutively)
   const [activeAyahNum,    setActiveAyahNum]    = useState<number | null>(null);
   const [ayahAudioMode,    setAyahAudioMode]    = useState<'loop' | 'seq'>('loop');
   const [ayahAudioLoading, setAyahAudioLoading] = useState<boolean>(false);
   const ayahAudioRef = useRef<HTMLAudioElement | null>(null);
-
-  // Verse Timings for Surah Player Auto-Scroll
-  const [verseTimings, setVerseTimings] = useState<VerseTiming[]>([]);
-  const lastScrolledAyahRef = useRef<number | null>(null);
 
   // UI Prefs
   const [isSidebarOpen,       setIsSidebarOpen]       = useState<boolean>(false);
@@ -105,23 +101,6 @@ export const App: React.FC = () => {
     try { localStorage.setItem(LS_TRANSL, String(showTranslation)); } catch {}
   }, [showTranslation]);
 
-  // Load verse timings whenever reciter or surah changes
-  useEffect(() => {
-    let cancelled = false;
-    setVerseTimings([]);
-    lastScrolledAyahRef.current = null;
-
-    if (selectedReciter.qdcReciterId) {
-      fetchSurahTimings(selectedReciter.qdcReciterId, selectedSurah.number).then(timings => {
-        if (!cancelled && timings && timings.length > 0) {
-          setVerseTimings(timings);
-        }
-      });
-    }
-
-    return () => { cancelled = true; };
-  }, [selectedReciter.qdcReciterId, selectedSurah.number]);
-
   // Load Urdu translation
   useEffect(() => {
     fetch('/urdu.json')
@@ -155,7 +134,6 @@ export const App: React.FC = () => {
     let cancelled = false;
     setIsLoadingAyahs(true);
     setCurrentPlayingAyah(null);
-    lastScrolledAyahRef.current = null;
     stopAyahAudio();
     ayahRefs.current = {};
 
@@ -195,9 +173,8 @@ export const App: React.FC = () => {
 
   // Play per-ayah audio handler
   const playAyahAudioAt = useCallback((ayahNum: number, mode: 'loop' | 'seq') => {
-    // Pause full surah player
+    // If full surah is playing, pause it so they don't clash
     setIsPlaying(false);
-    setCurrentPlayingAyah(null);
 
     if (ayahAudioRef.current) {
       ayahAudioRef.current.pause();
@@ -211,12 +188,6 @@ export const App: React.FC = () => {
     setAyahAudioMode(mode);
     setAyahAudioLoading(true);
 
-    // Scroll to the playing ayah smoothly
-    const el = ayahRefs.current[ayahNum];
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-
     audio.oncanplay = () => {
       setAyahAudioLoading(false);
     };
@@ -227,7 +198,7 @@ export const App: React.FC = () => {
         audio.currentTime = 0;
         audio.play().catch(console.error);
       } else {
-        // Sequential mode: only when the last word of this ayah finishes, advance to the next ayah!
+        // Sequential mode: advance to next ayah in this surah
         if (ayahNum < selectedSurah.numberOfAyahs) {
           playAyahAudioAt(ayahNum + 1, 'seq');
         } else {
@@ -249,63 +220,29 @@ export const App: React.FC = () => {
   }, [selectedReciter.id, selectedSurah.number, selectedSurah.numberOfAyahs, stopAyahAudio]);
 
   // User click on individual AyahCard play button
+  // 1st click on ayah -> plays in loop mode (بار بار یہی آیت چلے گی)
+  // 2nd click on SAME ayah -> switches to sequential mode (اس سے آگے والی ساری آیات چلیں گی)
+  // 3rd click on SAME ayah -> stops
+  // Click on DIFFERENT ayah -> plays that ayah
   const handlePlayAyah = useCallback((ayah: Ayah) => {
     if (activeAyahNum === ayah.numberInSurah) {
       if (ayahAudioMode === 'loop') {
-        // Switch to sequential mode
+        // User clicked same ayah again -> switch to sequential mode
         playAyahAudioAt(ayah.numberInSurah, 'seq');
       } else {
-        // Stop
+        // Already in seq mode -> stop
         stopAyahAudio();
       }
     } else {
-      // First click: loop this ayah
+      // First click on this ayah -> play in loop mode
       playAyahAudioAt(ayah.numberInSurah, 'loop');
     }
   }, [activeAyahNum, ayahAudioMode, playAyahAudioAt, stopAyahAudio]);
 
-  // Auto-scroll handler during full surah playback
-  // Only transitions to the next ayah when timestampTo of previous ayah is actually reached!
-  const handleSurahTimeUpdate = useCallback((currentTimeSec: number, durationSec: number) => {
-    if (!isPlaying || activeAyahNum !== null) return;
-    const currentMs = currentTimeSec * 1000;
-
-    let activeNum: number | null = null;
-
-    if (verseTimings.length > 0) {
-      // Exact millisecond timing check
-      const currentVt = verseTimings.find(
-        vt => currentMs >= vt.timestampFrom && currentMs < vt.timestampTo
-      );
-      if (currentVt) {
-        activeNum = currentVt.verseNumber;
-      }
-    } else if (durationSec > 0 && ayahs.length > 0) {
-      // Proportional fallback
-      const idx = Math.min(
-        Math.floor((currentTimeSec / durationSec) * ayahs.length),
-        ayahs.length - 1
-      );
-      activeNum = ayahs[idx].numberInSurah;
-    }
-
-    if (activeNum && activeNum !== lastScrolledAyahRef.current) {
-      lastScrolledAyahRef.current = activeNum;
-      const foundAyah = ayahs.find(a => a.numberInSurah === activeNum) || null;
-      setCurrentPlayingAyah(foundAyah);
-
-      // Smooth scroll only when the new ayah starts
-      const el = ayahRefs.current[activeNum];
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    }
-  }, [isPlaying, activeAyahNum, verseTimings, ayahs]);
-
   // Bottom player controls
   const handleTogglePlay = useCallback(() => {
     if (!isPlaying) {
-      stopAyahAudio();
+      stopAyahAudio(); // Stop single ayah audio if starting full surah
     }
     setIsPlaying(p => !p);
   }, [isPlaying, stopAyahAudio]);
@@ -337,7 +274,6 @@ export const App: React.FC = () => {
     setSelectedSurah(surah);
     setIsPlaying(false);
     setCurrentPlayingAyah(null);
-    lastScrolledAyahRef.current = null;
     setIsSidebarOpen(false);
   }, [stopAyahAudio]);
 
@@ -477,15 +413,10 @@ export const App: React.FC = () => {
             <div className="space-y-4">
               {ayahs.map(ayah => {
                 let playState: AyahPlayState = 'idle';
-                
-                // If per-ayah player is active on this ayah
                 if (activeAyahNum === ayah.numberInSurah) {
                   if (ayahAudioLoading) playState = 'loading';
                   else if (ayahAudioMode === 'loop') playState = 'playing_loop';
                   else if (ayahAudioMode === 'seq') playState = 'playing_seq';
-                } else if (isPlaying && currentPlayingAyah?.numberInSurah === ayah.numberInSurah) {
-                  // If full surah audio player is playing this exact ayah
-                  playState = 'playing_seq';
                 }
 
                 return (
@@ -549,7 +480,6 @@ export const App: React.FC = () => {
         onNextSurah={handleNextSurah}
         onPrevSurah={handlePrevSurah}
         onSelectReciterModal={() => setIsReciterModalOpen(true)}
-        onTimeUpdate={handleSurahTimeUpdate}
       />
     </div>
   );
