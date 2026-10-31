@@ -29,38 +29,42 @@
   background: #d4af37;
 }
 
-/* Tajweed Color Coding Standards */
-/* 1. غنہ (Ghunnah): سرخ رنگ - RED */
+/* Tajweed Color Coding Standards (Matches 16-Line Pakistani Color Quran exactly) */
+
+/* 1. پر پڑھے جانے والے حروف (Tafkheem): زمردی سبز رنگ - GREEN */
+.tajweed-tafkheem {
+  color: #10b981 !important; /* Emerald Green */
+  font-weight: 700;
+}
+
+/* 2. غنہ مشدد (Ghunnah): سرخ رنگ - RED */
 .tajweed-ghunnah {
-  color: #ef4444 !important; /* Red */
+  color: #ef4444 !important; /* Vivid Red */
   font-weight: 700;
-  text-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+  text-shadow: 0 0 8px rgba(239, 68, 68, 0.35);
 }
 
-/* 2. ادغام (Idgham): گلابی رنگ - PINK */
+/* 3. اخفاء و ادغام و اقلاب (باریک غنہ): گلابی رنگ - PINK / MAGENTA */
+.tajweed-ikhfa,
 .tajweed-idgham {
-  color: #ec4899 !important; /* Pink */
+  color: #ec4899 !important; /* Bright Pink */
   font-weight: 700;
-  text-shadow: 0 0 10px rgba(236, 72, 153, 0.3);
+  text-shadow: 0 0 8px rgba(236, 72, 153, 0.35);
 }
 
-/* 3. مد (Madd): گولڈن / عنبری رنگ */
-.tajweed-madd-lazim {
-  color: #f59e0b !important; /* Amber / Gold */
-  font-weight: 700;
-  border-bottom: 2px solid rgba(245, 158, 11, 0.5);
-}
-
-/* 4. قلقلہ (Qalqalah): آسمانی نیلا رنگ */
+/* 4. قلقلہ (Qalqalah): آسمانی نیلا رنگ - CYAN / BLUE */
 .tajweed-qalqalah {
   color: #0ea5e9 !important; /* Sky Blue */
   font-weight: 700;
+  text-shadow: 0 0 6px rgba(14, 165, 233, 0.3);
 }
 
-/* 5. تفخیم (Tafkheem): زمردی سبز رنگ */
-.tajweed-tafkheem {
-  color: #10b981 !important; /* Green */
-  font-weight: 600;
+/* 5. مدود (Madd): گہرا سرخ یا نمایاں سرخی مائل - CRIMSON RED */
+.tajweed-madd,
+.tajweed-madd-lazim {
+  color: #dc2626 !important; /* Deep Crimson */
+  font-weight: 800;
+  border-bottom: 2px solid rgba(220, 38, 38, 0.6);
 }
 
 /* Arabic Ayah Font Styling */
