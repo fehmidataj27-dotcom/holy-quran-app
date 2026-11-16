@@ -78,10 +78,11 @@
 
 /* Arabic Ayah Font Styling */
 .arabic-quran-text {
-  font-family: 'Amiri Quran', 'Scheherazade New', 'Noto Naskh Arabic', serif;
-  line-height: 2.4;
-  word-spacing: 4px;
-  letter-spacing: 0.5px;
+  font-family: 'Scheherazade New', 'Noto Naskh Arabic', 'Amiri Quran', serif;
+  font-weight: 700;
+  line-height: 2.6;
+  word-spacing: 6px;
+  letter-spacing: 0.3px;
 }
 
 .urdu-translation-text {

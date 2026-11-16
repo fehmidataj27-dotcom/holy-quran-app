@@ -521,72 +521,79 @@ export const App: React.FC = () => {
                 {selectedSurah.englishNameTranslation} • {selectedSurah.numberOfAyahs} آیات مبارکہ
               </p>
               {/* Ta'awwuz & Tasmiyah Interactive Player for Kids / Repetition */}
-              <div className="mt-6 pt-6 border-t border-slate-800/80 flex flex-col items-center gap-4">
+              <div className="mt-8 pt-6 border-t border-slate-700/60 flex flex-col items-center gap-5 w-full">
+                <p className="text-xs text-slate-500 uppercase tracking-widest font-semibold">قبلِ تلاوت</p>
+
                 {/* Ta'awwuz (A'udhu billah) */}
-                <div className="flex flex-col sm:flex-row items-center justify-between w-full max-w-xl bg-[#08111e]/80 border border-slate-700/60 rounded-2xl p-3.5 px-5 gap-3 hover:border-[#d4af37]/40 transition-all">
-                  <div className="text-right flex-1">
-                    <p className="arabic-quran-text text-xl md:text-2xl text-slate-100 font-semibold leading-relaxed">
-                      أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ
-                    </p>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      میں اللہ کی پناہ مانگتا ہوں شیطان مردود سے (تعوذ)
-                    </p>
+                <div className="relative w-full max-w-lg group">
+                  {/* Number badge */}
+                  <span className="absolute -top-3 right-4 w-7 h-7 rounded-full bg-[#1a2d4a] border border-[#d4af37]/50 flex items-center justify-center text-[#d4af37] text-sm font-bold z-10">١</span>
+                  <div className={`flex flex-row-reverse items-center justify-between gap-4 rounded-2xl px-5 py-4 border transition-all duration-300 ${
+                    isIntroPlaying && introAudioType === 'taawuz'
+                      ? 'bg-[#0d1f33] border-rose-500/60 shadow-lg shadow-rose-500/10'
+                      : 'bg-[#0a1726] border-slate-600/50 hover:border-[#d4af37]/50 hover:shadow-lg hover:shadow-[#d4af37]/5'
+                  }`}>
+                    <button
+                      type="button"
+                      onClick={() => handlePlayIntro('taawuz')}
+                      className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 shadow-md ${
+                        isIntroPlaying && introAudioType === 'taawuz'
+                          ? 'bg-rose-500 text-white animate-pulse scale-105'
+                          : 'bg-[#d4af37] text-black hover:bg-yellow-400 hover:scale-110'
+                      }`}
+                      title={isIntroPlaying && introAudioType === 'taawuz' ? 'روکیں' : 'تعوذ سنیں'}
+                    >
+                      {isIntroPlaying && introAudioType === 'taawuz' ? (
+                        <Pause className="w-5 h-5 fill-current" />
+                      ) : (
+                        <Play className="w-5 h-5 fill-current ml-0.5" />
+                      )}
+                    </button>
+                    <div className="flex-1 text-right">
+                      <p className="arabic-quran-text text-2xl md:text-3xl text-slate-100 leading-loose tracking-wide">
+                        أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ
+                      </p>
+                      <p className="text-[11px] text-slate-400 mt-1 font-medium">
+                        میں اللہ کی پناہ مانگتا ہوں شیطان مردود سے &nbsp;—&nbsp; <span className="text-[#d4af37]/80">تعوذ</span>
+                      </p>
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handlePlayIntro('taawuz')}
-                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-md ${
-                      isIntroPlaying && introAudioType === 'taawuz'
-                        ? 'bg-rose-500 text-white animate-pulse'
-                        : 'bg-[#1b2b44] text-[#d4af37] hover:bg-[#d4af37] hover:text-black border border-[#d4af37]/30'
-                    }`}
-                  >
-                    {isIntroPlaying && introAudioType === 'taawuz' ? (
-                      <>
-                        <Pause className="w-4 h-4 fill-current" />
-                        <span>رکیں</span>
-                      </>
-                    ) : (
-                      <>
-                        <Play className="w-4 h-4 fill-current" />
-                        <span>تعوذ سنیں</span>
-                      </>
-                    )}
-                  </button>
                 </div>
 
                 {/* Tasmiyah (Bismillah) */}
                 {selectedSurah.number !== 9 && (
-                  <div className="flex flex-col sm:flex-row items-center justify-between w-full max-w-xl bg-[#08111e]/80 border border-slate-700/60 rounded-2xl p-3.5 px-5 gap-3 hover:border-[#d4af37]/40 transition-all">
-                    <div className="text-right flex-1">
-                      <p className="arabic-quran-text text-xl md:text-2xl text-[#d4af37] font-semibold leading-relaxed">
-                        بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
-                      </p>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        شروع اللہ کے نام سے جو بڑا مہربان نہایت رحم والا ہے (تسمیہ)
-                      </p>
+                  <div className="relative w-full max-w-lg group">
+                    <span className="absolute -top-3 right-4 w-7 h-7 rounded-full bg-[#1a2d4a] border border-[#d4af37]/50 flex items-center justify-center text-[#d4af37] text-sm font-bold z-10">٢</span>
+                    <div className={`flex flex-row-reverse items-center justify-between gap-4 rounded-2xl px-5 py-4 border transition-all duration-300 ${
+                      isIntroPlaying && introAudioType === 'tasmiyah'
+                        ? 'bg-[#0d1f33] border-rose-500/60 shadow-lg shadow-rose-500/10'
+                        : 'bg-[#0a1726] border-slate-600/50 hover:border-[#d4af37]/50 hover:shadow-lg hover:shadow-[#d4af37]/5'
+                    }`}>
+                      <button
+                        type="button"
+                        onClick={() => handlePlayIntro('tasmiyah')}
+                        className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 shadow-md ${
+                          isIntroPlaying && introAudioType === 'tasmiyah'
+                            ? 'bg-rose-500 text-white animate-pulse scale-105'
+                            : 'bg-[#d4af37] text-black hover:bg-yellow-400 hover:scale-110'
+                        }`}
+                        title={isIntroPlaying && introAudioType === 'tasmiyah' ? 'روکیں' : 'تسمیہ سنیں'}
+                      >
+                        {isIntroPlaying && introAudioType === 'tasmiyah' ? (
+                          <Pause className="w-5 h-5 fill-current" />
+                        ) : (
+                          <Play className="w-5 h-5 fill-current ml-0.5" />
+                        )}
+                      </button>
+                      <div className="flex-1 text-right">
+                        <p className="arabic-quran-text text-2xl md:text-3xl text-[#d4af37] leading-loose tracking-wide">
+                          بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+                        </p>
+                        <p className="text-[11px] text-slate-400 mt-1 font-medium">
+                          اللہ کے نام سے جو بڑا مہربان نہایت رحم والا ہے &nbsp;—&nbsp; <span className="text-[#d4af37]/80">تسمیہ</span>
+                        </p>
+                      </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handlePlayIntro('tasmiyah')}
-                      className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-md ${
-                        isIntroPlaying && introAudioType === 'tasmiyah'
-                          ? 'bg-rose-500 text-white animate-pulse'
-                          : 'bg-[#1b2b44] text-[#d4af37] hover:bg-[#d4af37] hover:text-black border border-[#d4af37]/30'
-                      }`}
-                    >
-                      {isIntroPlaying && introAudioType === 'tasmiyah' ? (
-                        <>
-                          <Pause className="w-4 h-4 fill-current" />
-                          <span>رکیں</span>
-                        </>
-                      ) : (
-                        <>
-                          <Play className="w-4 h-4 fill-current" />
-                          <span>تسمیہ سنیں</span>
-                        </>
-                      )}
-                    </button>
                   </div>
                 )}
               </div>
