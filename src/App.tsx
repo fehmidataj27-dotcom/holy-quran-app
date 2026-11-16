@@ -161,7 +161,7 @@ export const App: React.FC = () => {
 
     async function loadSurah() {
       try {
-        const res  = await fetch(`/quran/${selectedSurah.number}.json`);
+        const res  = await fetch(`/quran/${selectedSurah.number}.json?v=2`);
         const data = await res.json();
         if (cancelled) return;
 

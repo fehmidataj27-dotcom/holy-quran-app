@@ -1,11 +1,21 @@
-const CACHE_NAME = 'quran-app-v1';
+const CACHE_NAME = 'quran-app-v2';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(clients.claim());
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys.map((key) => {
+          if (key !== CACHE_NAME) {
+            return caches.delete(key);
+          }
+        })
+      )
+    ).then(() => clients.claim())
+  );
 });
 
 self.addEventListener('fetch', (event) => {
