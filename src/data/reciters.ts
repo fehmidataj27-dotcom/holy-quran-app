@@ -106,9 +106,9 @@ export const RECITERS_LIST: Reciter[] = [
     arabicName: 'الشيخ محمد أيوب',
     style: 'حفص عن عاصم - الحجازي العريق',
     category: 'Haramain',
-    serverUrl: 'https://server8.mp3quran.net/ayyub/',
+    serverUrl: 'https://cdn.mp3quran.net/audio/muhammad-ayyub/r1/',
     bitrate: '128 kbps',
-    description: 'إمام المسجد النبوی الشريف، رائد النغم الحجازي الأصيل',
+    description: 'إمام المسجد النبوي الشريف، رائد النغم الحجازي الأصيل',
     hasFullQuran: true
   },
 
