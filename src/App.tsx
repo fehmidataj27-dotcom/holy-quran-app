@@ -225,8 +225,15 @@ export const App: React.FC = () => {
         const count = data.count || selectedSurah.numberOfAyahs;
 
         for (let i = 1; i <= count; i++) {
-          const arabic = data.verse?.[`verse_${i}`] || '';
+          let arabic = data.verse?.[`verse_${i}`] || '';
           const urdu   = urduDictRef.current[`${selectedSurah.number}:${i}`] || '';
+          
+          // Surah 1 (Al-Fatihah) mein Bismillah aayat #1 ka hissa hai
+          // Baqi surahs (Surah 2-114) mein aayat #1 se pehle lagi Bismillah hata di jaye
+          if (selectedSurah.number !== 1 && i === 1) {
+            arabic = arabic.replace(/^بِسْمِ\s*ٱللَّهِ\s*ٱلرَّحْمَٰنِ\s*ٱلرَّحِيمِ\s*/, '');
+          }
+
           if (arabic) {
             parsed.push({
               number: i, numberInSurah: i,
