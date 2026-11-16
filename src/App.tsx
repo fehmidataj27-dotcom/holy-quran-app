@@ -629,7 +629,7 @@ export const App: React.FC = () => {
                 return (
                   <div
                     key={ayah.number}
-                    ref={el => { ayahRefs.current[ayah.number] = el; }}
+                    ref={el => { ayahRefs.current[ayah.numberInSurah] = el; }}
                   >
                     <AyahCard
                       ayah={ayah}
