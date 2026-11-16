@@ -360,14 +360,14 @@ export const RECITERS_LIST: Reciter[] = [
   },
   {
     id: 'ridjal_ahmad',
-    name: 'Ridjaal Ahmed',
+    name: 'Ridjaal Ahmed (ریجال احمد)',
     arabicName: 'ريجال أحمد',
     style: 'تلاوة روحانية هادئة للنوم والتأمل',
     category: 'Global',
     serverUrl: 'SPECIAL_ONLY',
     bitrate: '128 kbps',
-    description: 'القارئ الإندونيسي الفيروسي، صوت ملائكي هادئ',
+    description: 'القارئ الإندونيسي الفيروسي، صوت ملائكي هادئ ومؤثر',
     hasFullQuran: false,
-    availableSurahs: []
+    availableSurahs: [2, 13, 36, 50, 56, 62, 68, 69, 71, 72, 75, 76, 89]
   }
 ];

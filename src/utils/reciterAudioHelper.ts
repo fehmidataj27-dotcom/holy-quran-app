@@ -32,13 +32,21 @@ export const SPECIAL_RECITER_SURAHS: Record<string, Record<number, string>> = {
   },
 
   // ─── Ridjaal Ahmed ─────────────────────────────────────────────────────────
-  // Independent Indonesian reciter — no public full-Quran CDN folder.
-  // NOTE: URLs below are placeholders. When 404, the error handler auto-shows
-  // "not available". Add real verified URLs as they become available.
+  // Indonesian reciter known for emotional soothing viral recitations
   ridjal_ahmad: {
-    // Currently no verified free CDN links for full surahs.
-    // Add links here when found, e.g.:
-    // 1: 'https://example.com/ridjal/001.mp3',
+    2:  'https://archive.org/download/ridjal-ahmed/02%20Surath%20Al%20Baqara.mp3',
+    13: 'https://archive.org/download/ridjal-ahmed/13%20Surath%20Al-Rad.mp3',
+    36: 'https://archive.org/download/ridjal-ahmed/36%20Surath%20Ya-Seen.mp3',
+    50: 'https://archive.org/download/ridjal-ahmed/50%20Surah%20Qaf.mp3',
+    56: 'https://archive.org/download/ridjal-ahmed/56%20Surath%20Al%20Waqi%27a.mp3',
+    62: 'https://archive.org/download/ridjal-ahmed/062%20Al%20Jumuah.mp3',
+    68: 'https://archive.org/download/ridjal-ahmed/068%20Al%20Qalam.mp3',
+    69: 'https://archive.org/download/ridjal-ahmed/69%20Surath%20Al-haaqa.mp3',
+    71: 'https://archive.org/download/ridjal-ahmed/71%20Surah%20Nooh.mp3',
+    72: 'https://archive.org/download/ridjal-ahmed/72.%20surah%20Al-Jinn.mp3',
+    75: 'https://archive.org/download/ridjal-ahmed/75%20Surah%20Al-Qiyama.mp3',
+    76: 'https://archive.org/download/ridjal-ahmed/76%20Surah%20Al-Insaan.mp3',
+    89: 'https://archive.org/download/viral-ridjaal-ahmed-surah-al-fajr-full-bikin-hati-tenang-ridjaal-ahmed-mc-mc/VIRAL%20Ridjaal%20Ahmed%20Surah%20Al-Fajr%20Full%20Bikin%20Hati%20Tenang%20%40Ridjaal%20Ahmed-mc-mc.mp3'
   },
 };
 
