@@ -183,7 +183,7 @@ export const App: React.FC = () => {
     setIsPlaying(false);
     setCurrentPlayingAyah(null);
 
-    const audioUrl = type === 'tasmiyah' ? '/audio/tasmiyah_husary.mp3' : '/audio/tasmiyah_alafasy.mp3';
+    const audioUrl = type === 'tasmiyah' ? '/audio/tasmiyah.mp3' : '/audio/taawuz.mp3';
     const audio = new Audio(audioUrl);
     introAudioRef.current = audio;
     setIntroAudioType(type);
