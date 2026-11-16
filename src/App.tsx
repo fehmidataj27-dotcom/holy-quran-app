@@ -17,7 +17,10 @@ import {
   ChevronRight,
   ChevronLeft,
   Loader2,
-  Info
+  Info,
+  Play,
+  Pause,
+  RotateCcw
 } from 'lucide-react';
 
 const LS_RECITER   = 'quran_selected_reciter_id';
@@ -63,6 +66,11 @@ export const App: React.FC = () => {
   const [ayahAudioMode,    setAyahAudioMode]    = useState<'loop' | 'seq'>('loop');
   const [ayahAudioLoading, setAyahAudioLoading] = useState<boolean>(false);
   const ayahAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Ta'awwuz & Tasmiyah Intro Player State
+  const [introAudioType, setIntroAudioType] = useState<'taawuz' | 'tasmiyah' | null>(null);
+  const [isIntroPlaying, setIsIntroPlaying] = useState<boolean>(false);
+  const introAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Verse Timings for Surah Player Auto-Scroll
   const [verseTimings, setVerseTimings] = useState<VerseTiming[]>([]);
@@ -149,6 +157,54 @@ export const App: React.FC = () => {
     setActiveAyahNum(null);
     setAyahAudioLoading(false);
   }, []);
+
+  // Stop intro audio (Taawwuz / Tasmiyah)
+  const stopIntroAudio = useCallback(() => {
+    if (introAudioRef.current) {
+      introAudioRef.current.pause();
+      introAudioRef.current.src = '';
+      introAudioRef.current = null;
+    }
+    setIntroAudioType(null);
+    setIsIntroPlaying(false);
+  }, []);
+
+  // Play Ta'awwuz or Tasmiyah for kids / repetition
+  const handlePlayIntro = useCallback((type: 'taawuz' | 'tasmiyah') => {
+    // If currently playing the same type -> stop it
+    if (isIntroPlaying && introAudioType === type) {
+      stopIntroAudio();
+      return;
+    }
+
+    // Stop other audio streams
+    stopIntroAudio();
+    stopAyahAudio();
+    setIsPlaying(false);
+    setCurrentPlayingAyah(null);
+
+    const audioUrl = type === 'tasmiyah' ? '/audio/tasmiyah_husary.mp3' : '/audio/tasmiyah_alafasy.mp3';
+    const audio = new Audio(audioUrl);
+    introAudioRef.current = audio;
+    setIntroAudioType(type);
+    setIsIntroPlaying(true);
+
+    audio.onended = () => {
+      setIntroAudioType(null);
+      setIsIntroPlaying(false);
+    };
+
+    audio.onerror = () => {
+      setIntroAudioType(null);
+      setIsIntroPlaying(false);
+    };
+
+    audio.play().catch(err => {
+      console.warn('Intro playback error:', err);
+      setIntroAudioType(null);
+      setIsIntroPlaying(false);
+    });
+  }, [isIntroPlaying, introAudioType, stopIntroAudio, stopAyahAudio]);
 
   // Load Surah Ayahs
   useEffect(() => {
@@ -457,13 +513,76 @@ export const App: React.FC = () => {
               <p className="text-sm md:text-base text-slate-300 font-medium">
                 {selectedSurah.englishNameTranslation} • {selectedSurah.numberOfAyahs} آیات مبارکہ
               </p>
-              {selectedSurah.number !== 9 && (
-                <div className="mt-6 pt-6 border-t border-slate-800/80">
-                  <p className="arabic-quran-text text-2xl md:text-3xl text-[#d4af37] leading-loose">
-                    بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
-                  </p>
+              {/* Ta'awwuz & Tasmiyah Interactive Player for Kids / Repetition */}
+              <div className="mt-6 pt-6 border-t border-slate-800/80 flex flex-col items-center gap-4">
+                {/* Ta'awwuz (A'udhu billah) */}
+                <div className="flex flex-col sm:flex-row items-center justify-between w-full max-w-xl bg-[#08111e]/80 border border-slate-700/60 rounded-2xl p-3.5 px-5 gap-3 hover:border-[#d4af37]/40 transition-all">
+                  <div className="text-right flex-1">
+                    <p className="arabic-quran-text text-xl md:text-2xl text-slate-100 font-semibold leading-relaxed">
+                      أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ
+                    </p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      میں اللہ کی پناہ مانگتا ہوں شیطان مردود سے (تعوذ)
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handlePlayIntro('taawuz')}
+                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-md ${
+                      isIntroPlaying && introAudioType === 'taawuz'
+                        ? 'bg-rose-500 text-white animate-pulse'
+                        : 'bg-[#1b2b44] text-[#d4af37] hover:bg-[#d4af37] hover:text-black border border-[#d4af37]/30'
+                    }`}
+                  >
+                    {isIntroPlaying && introAudioType === 'taawuz' ? (
+                      <>
+                        <Pause className="w-4 h-4 fill-current" />
+                        <span>رکیں</span>
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-4 h-4 fill-current" />
+                        <span>تعوذ سنیں</span>
+                      </>
+                    )}
+                  </button>
                 </div>
-              )}
+
+                {/* Tasmiyah (Bismillah) */}
+                {selectedSurah.number !== 9 && (
+                  <div className="flex flex-col sm:flex-row items-center justify-between w-full max-w-xl bg-[#08111e]/80 border border-slate-700/60 rounded-2xl p-3.5 px-5 gap-3 hover:border-[#d4af37]/40 transition-all">
+                    <div className="text-right flex-1">
+                      <p className="arabic-quran-text text-xl md:text-2xl text-[#d4af37] font-semibold leading-relaxed">
+                        بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+                      </p>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        شروع اللہ کے نام سے جو بڑا مہربان نہایت رحم والا ہے (تسمیہ)
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handlePlayIntro('tasmiyah')}
+                      className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-md ${
+                        isIntroPlaying && introAudioType === 'tasmiyah'
+                          ? 'bg-rose-500 text-white animate-pulse'
+                          : 'bg-[#1b2b44] text-[#d4af37] hover:bg-[#d4af37] hover:text-black border border-[#d4af37]/30'
+                      }`}
+                    >
+                      {isIntroPlaying && introAudioType === 'tasmiyah' ? (
+                        <>
+                          <Pause className="w-4 h-4 fill-current" />
+                          <span>رکیں</span>
+                        </>
+                      ) : (
+                        <>
+                          <Play className="w-4 h-4 fill-current" />
+                          <span>تسمیہ سنیں</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
