@@ -268,6 +268,11 @@ export const App: React.FC = () => {
     }
 
     const url = getAyahAudioUrl(selectedReciter.id, selectedSurah.number, ayahNum);
+    // Per-ayah audio not available for this reciter → abort silently
+    if (!url) {
+      setAyahAudioLoading(false);
+      return;
+    }
     const audio = new Audio(url);
     ayahAudioRef.current = audio;
     setActiveAyahNum(ayahNum);
@@ -633,6 +638,7 @@ export const App: React.FC = () => {
                       tajweedEnabled={tajweedEnabled}
                       fontSize={fontSize}
                       showTranslation={showTranslation}
+                      hasPerAyahAudio={!!getAyahAudioUrl(selectedReciter.id, selectedSurah.number, 1)}
                       onPlay={handlePlayAyah}
                       onToggleBookmark={handleToggleBookmark}
                     />

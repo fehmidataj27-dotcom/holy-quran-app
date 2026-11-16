@@ -12,6 +12,7 @@ interface AyahCardProps {
   tajweedEnabled: boolean;
   fontSize: number;
   showTranslation: boolean;
+  hasPerAyahAudio: boolean;          // false for SPECIAL_ONLY reciters (no EveryAyah entry)
   onPlay: (ayah: Ayah) => void;       // first press → play this ayah in loop mode
   onToggleBookmark: (ayah: Ayah) => void;
 }
@@ -23,6 +24,7 @@ export const AyahCard: React.FC<AyahCardProps> = React.memo(({
   tajweedEnabled,
   fontSize,
   showTranslation,
+  hasPerAyahAudio,
   onPlay,
   onToggleBookmark,
 }) => {
@@ -82,11 +84,14 @@ export const AyahCard: React.FC<AyahCardProps> = React.memo(({
         <div className="flex items-center space-x-1 sm:space-x-2">
           {/* Play / Pause this ayah */}
           <button
-            onClick={() => onPlay(ayah)}
-            title={playTitle}
+            onClick={() => hasPerAyahAudio ? onPlay(ayah) : undefined}
+            title={!hasPerAyahAudio ? 'اس قاری کے لیے آیت بہ آیت آڈیو دستیاب نہیں — مکمل سورت اوپر سے چلائیں' : playTitle}
             aria-label={playTitle}
+            disabled={!hasPerAyahAudio}
             className={`p-2.5 rounded-xl transition-all ${
-              isActive
+              !hasPerAyahAudio
+                ? 'bg-[#111c2d] text-slate-600 cursor-not-allowed opacity-50'
+                : isActive
                 ? 'bg-[#d4af37] text-black font-semibold shadow-md shadow-[#d4af37]/25'
                 : 'bg-[#182337] text-slate-300 hover:text-white hover:bg-[#202f48]'
             }`}
