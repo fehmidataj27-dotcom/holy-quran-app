@@ -10,6 +10,17 @@ export const RECITERS_LIST: Reciter[] = [
   // 🕋 حرمین شریفین و ائمہ کبار (FULL 114 SURAHS) — اولویت اول
   // ════════════════════════════════════════════════════════════════
   {
+    id: 'mohammed_ayyoub',
+    name: 'Sheikh Muhammad Ayyub (شیخ محمد ایوب)',
+    arabicName: 'الشيخ محمد أيوب',
+    style: 'حفص عن عاصم - الحجازي العريق',
+    category: 'Haramain',
+    serverUrl: 'https://cdn.mp3quran.net/audio/muhammad-ayyub/r1/',
+    bitrate: '128 kbps',
+    description: 'إمام المسجد النبوي الشريف، رائد النغم الحجازي الأصيل (شیخ محمد ایوب رحمہ اللہ)',
+    hasFullQuran: true
+  },
+  {
     id: 'abdul_rahman_sudais',
     name: 'Sheikh Abdul Rahman Al-Sudais',
     arabicName: 'الشيخ عبد الرحمن السديس',
@@ -98,17 +109,6 @@ export const RECITERS_LIST: Reciter[] = [
     serverUrl: 'https://server13.mp3quran.net/jhn/',
     bitrate: '128 kbps',
     description: 'إمام المسجد الحرام، صوت ندِيّ وأسلوب فريد',
-    hasFullQuran: true
-  },
-  {
-    id: 'mohammed_ayyoub',
-    name: 'Sheikh Mohammed Ayyub',
-    arabicName: 'الشيخ محمد أيوب',
-    style: 'حفص عن عاصم - الحجازي العريق',
-    category: 'Haramain',
-    serverUrl: 'https://cdn.mp3quran.net/audio/muhammad-ayyub/r1/',
-    bitrate: '128 kbps',
-    description: 'إمام المسجد النبوي الشريف، رائد النغم الحجازي الأصيل',
     hasFullQuran: true
   },
 
