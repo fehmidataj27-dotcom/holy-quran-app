@@ -349,12 +349,19 @@ export const App: React.FC = () => {
         activeNum = currentVt.verseNumber;
       }
     } else if (durationSec > 0 && ayahs.length > 0) {
-      // Proportional fallback
-      const idx = Math.min(
-        Math.floor((currentTimeSec / durationSec) * ayahs.length),
-        ayahs.length - 1
-      );
-      activeNum = ayahs[idx].numberInSurah;
+      // Intelligent text-length weighted sync for reciters without timing API
+      let totalLen = 0;
+      const cumulativeLengths = ayahs.map(a => {
+        // Strip tashkeel and spaces for accurate pronunciation weight
+        const pureLen = (a.text || '').replace(/[\s\u064B-\u065F\u0670]/g, '').length || 15;
+        totalLen += pureLen;
+        return totalLen;
+      });
+
+      const target = (currentTimeSec / durationSec) * totalLen;
+      let matchedIdx = cumulativeLengths.findIndex(cum => cum >= target);
+      if (matchedIdx === -1) matchedIdx = ayahs.length - 1;
+      activeNum = ayahs[matchedIdx].numberInSurah;
     }
 
     if (activeNum && activeNum !== lastScrolledAyahRef.current) {
