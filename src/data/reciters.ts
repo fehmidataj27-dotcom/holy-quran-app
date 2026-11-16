@@ -283,11 +283,11 @@ export const RECITERS_LIST: Reciter[] = [
   },
     {
       id: 'alaa_aql',
-      name: 'Qari Alaa Aql',
+      name: 'Qari Alaa Aql (قاری علاء عقل)',
       arabicName: 'القارئ علاء عقل',
       style: 'حفص عن عاصم - تلاوة هادئة خاشعة تأسر القلوب',
       category: 'Contemporary',
-      serverUrl: 'https://archive.org/download/AlaaAql/',
+      serverUrl: 'https://ia601403.us.archive.org/29/items/AlaaAql/',
       bitrate: '128 kbps',
       description: 'القارئ علاء عقل، صاحب الصوت الهادئ والتلاوات الخاشعة المؤثرة (المصحف كاملاً 114 سورة)',
       hasFullQuran: true
