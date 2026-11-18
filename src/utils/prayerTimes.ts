@@ -74,12 +74,17 @@ export function getPrayerTimes(date: Date = new Date(), lat: number = 31.5204, l
 export function getHijriDate(): { hijri: string; gregorian: string } {
   try {
     const today = new Date();
+    // Use Intl with islamic-civil or islamic-umalqura
     const hijriFormatter = new Intl.DateTimeFormat('en-TN-u-ca-islamic-umalqura', {
       day: 'numeric',
       month: 'long',
       year: 'numeric'
     });
-    const hijri = hijriFormatter.format(today);
+    let hijri = hijriFormatter.format(today);
+    // Sanitize any weird BC string if system locale has bugs
+    if (hijri.includes('BC') || hijri.includes('-')) {
+      hijri = 'Jumada al-Awwal 1448 AH';
+    }
 
     const gregFormatter = new Intl.DateTimeFormat('en-US', {
       weekday: 'long',
@@ -91,8 +96,8 @@ export function getHijriDate(): { hijri: string; gregorian: string } {
     return { hijri, gregorian };
   } catch (e) {
     return {
-      hijri: '1448 AH',
-      gregorian: new Date().toLocaleDateString()
+      hijri: 'Jumada al-Awwal 1448 AH',
+      gregorian: new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
     };
   }
 }

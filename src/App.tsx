@@ -616,7 +616,18 @@ export const App: React.FC = () => {
       {/* Main Content */}
       <div className="flex-1 lg:pl-80 flex flex-col min-w-0">
         {/* Top Navigation Bar */}
-        <header className="sticky top-0 z-20 bg-[#0a121e]/95 backdrop-blur-xl border-b border-slate-800/80 px-4 md:px-8 py-3.5 flex items-center justify-between shadow-lg">
+        <header className="sticky top-0 z-20 bg-[#0a121e]/95 backdrop-blur-xl border-b border-slate-800/80 px-3 md:px-8 py-3 flex items-center justify-between shadow-lg">
+          {/* Back to Home Button */}
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setCurrentView('home')}
+              className="flex items-center gap-1.5 bg-[#1b7a4b] hover:bg-[#14603b] text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-md transition-all active:scale-95"
+              title="مین مینو پر جائیں"
+            >
+              <Home className="w-4 h-4" />
+              <span>ہوم مینو</span>
+            </button>
+          </div>
           <div className="flex items-center space-x-3">
             <button
               onClick={() => setIsSidebarOpen(true)}
