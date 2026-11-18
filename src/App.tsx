@@ -14,6 +14,7 @@ import { JuzIndexView } from './components/JuzIndexView';
 import { SurahIndexView } from './components/SurahIndexView';
 import { GotoPageModal } from './components/GotoPageModal';
 import { BookmarksView, BookmarkItem } from './components/BookmarksView';
+import { MushafPageView } from './components/MushafPageView';
 import { getPrayerTimes, getHijriDate } from './utils/prayerTimes';
 import { JUZ_LIST, JuzInfo } from './data/juz';
 import { Home } from 'lucide-react';
@@ -60,7 +61,8 @@ function getSavedSurah(): Surah {
 
 export const App: React.FC = () => {
   // Navigation View State: 'home' | 'quran' | 'prayer_times' | 'juz_index' | 'surah_index' | 'bookmarks'
-  const [currentView, setCurrentView] = useState<'home' | 'quran' | 'prayer_times' | 'juz_index' | 'surah_index' | 'bookmarks'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'quran' | 'prayer_times' | 'juz_index' | 'surah_index' | 'bookmarks' | 'mushaf_page'>('home');
+  const [currentMushafPage, setCurrentMushafPage] = useState<number>(1);
   const [isAdmissionModalOpen, setIsAdmissionModalOpen] = useState<boolean>(true);
   const [isGotoPageOpen, setIsGotoPageOpen] = useState<boolean>(false);
   const [savedBookmarks, setSavedBookmarks] = useState<BookmarkItem[]>(() => {
@@ -95,9 +97,8 @@ export const App: React.FC = () => {
   };
 
   const handleSelectJuz = (juz: JuzInfo) => {
-    const surah = SURAH_LIST.find(s => s.number === juz.startSurah) || SURAH_LIST[0];
-    setSelectedSurah(surah);
-    setCurrentView('quran');
+    setCurrentMushafPage(juz.page);
+    setCurrentView('mushaf_page');
   };
 
   const [selectedSurah,   setSelectedSurah]   = useState<Surah>(getSavedSurah);
@@ -475,6 +476,18 @@ export const App: React.FC = () => {
   }, [stopAyahAudio]);
 
   
+  
+  // Render 16-Line Authentic Tajweed Mushaf Page View
+  if (currentView === 'mushaf_page') {
+    return (
+      <MushafPageView
+        initialPage={currentMushafPage}
+        initialSurahName={selectedSurah.name}
+        onBack={() => setCurrentView('home')}
+      />
+    );
+  }
+
   // Render Prayer Times View
   if (currentView === 'prayer_times') {
     return (
@@ -504,8 +517,12 @@ export const App: React.FC = () => {
           selectedReciter={selectedReciter}
           onSelectSurah={(surah, mode) => {
             handleSelectSurah(surah);
-            setCurrentView('quran');
-            if (mode === 'play') {
+            if (mode === 'read') {
+              const matchedJuz = JUZ_LIST.slice().reverse().find(j => j.startSurah <= surah.number) || JUZ_LIST[0];
+              setCurrentMushafPage(matchedJuz.page);
+              setCurrentView('mushaf_page');
+            } else {
+              setCurrentView('quran');
               setTimeout(() => {
                 setIsPlaying(true);
               }, 300);
@@ -558,7 +575,7 @@ export const App: React.FC = () => {
           prayerTimes={prayerTimes}
           lastReadSurah={selectedSurah}
           lastReadJuz={Math.ceil(selectedSurah.number / 4)}
-          onResumeReading={() => setCurrentView('quran')}
+          onResumeReading={() => { setCurrentMushafPage(1); setCurrentView('mushaf_page'); }}
           onOpenJuzIndex={() => setCurrentView('juz_index')}
           onOpenSurahIndex={() => setCurrentView('surah_index')}
           onOpenGotoPage={() => setIsGotoPageOpen(true)}
@@ -578,9 +595,9 @@ export const App: React.FC = () => {
           isOpen={isGotoPageOpen}
           onClose={() => setIsGotoPageOpen(false)}
           onGoToSurah={(surahNum) => {
-            const s = SURAH_LIST.find(item => item.number === surahNum) || SURAH_LIST[0];
-            setSelectedSurah(s);
-            setCurrentView('quran');
+            const juz = JUZ_LIST.find(j => j.startSurah >= surahNum) || JUZ_LIST[0];
+            setCurrentMushafPage(juz.page);
+            setCurrentView('mushaf_page');
           }}
           surahs={SURAH_LIST}
         />
