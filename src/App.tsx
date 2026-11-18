@@ -482,8 +482,6 @@ export const App: React.FC = () => {
     return (
       <MushafPageView
         initialPage={currentMushafPage}
-        initialSurahName={selectedSurah.name}
-        initialSurahNumber={selectedSurah.number}
         onBack={() => setCurrentView('home')}
       />
     );
