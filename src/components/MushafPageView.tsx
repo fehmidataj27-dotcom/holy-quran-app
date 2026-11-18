@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, TouchEvent } from 'react';
-import { ChevronRight, ChevronLeft, Bookmark, ZoomIn, ZoomOut, RotateCcw, ArrowLeft } from 'lucide-react';
-import { formatTajweed } from '../utils/tajweed';
+import { ChevronRight, ChevronLeft, Bookmark, ZoomIn, ZoomOut, RotateCcw, Loader2 } from 'lucide-react';
 import { SURAH_LIST } from '../data/surahs';
 
 interface MushafPageViewProps {
@@ -8,61 +7,158 @@ interface MushafPageViewProps {
   onBack: () => void;
 }
 
-interface PageAyahRef {
-  s: number; // surah number
-  a: number; // ayah number
-}
-
-interface RenderedAyah {
-  surahNumber: number;
-  surahName: string;
-  surahNameEn: string;
-  surahType: string;
-  ayahNumber: number;
-  text: string;
-  isFirstOfSurah: boolean;
-  totalAyahs: number;
-}
-
 const LS_MUSHAF_PAGE = 'quran_mushaf_last_page';
 const LS_MUSHAF_BOOKMARKS = 'quran_mushaf_page_bookmarks';
 
-// Cache for loaded surah data
-const surahCache: Record<number, Record<string, string>> = {};
+// Quran page image CDN — authentic 16-line tajweed mushaf (604 pages)
+// Primary: Islamic Network high-resolution images
+// Fallback: alternate CDN
+const getPageImageUrl = (page: number): string => {
+  return `https://cdn.islamic.network/quran/images/high-resolution/${page}.png`;
+};
 
-async function loadSurahVerses(surahNum: number): Promise<Record<string, string>> {
-  if (surahCache[surahNum]) return surahCache[surahNum];
-  const res = await fetch(`/quran/${surahNum}.json`);
-  const data = await res.json();
-  surahCache[surahNum] = data.verse || {};
-  return surahCache[surahNum];
+const getFallbackImageUrl = (page: number): string => {
+  // Alternate source
+  return `https://www.searchtruth.com/quran/images/quran-page-${page}.jpg`;
+};
+
+// Surah name for a given page number (approximate lookup)
+const SURAH_PAGE_STARTS: Array<{ surah: number; page: number; name: string }> = [
+  { surah: 1, page: 1, name: 'الفاتحة' },
+  { surah: 2, page: 2, name: 'البقرة' },
+  { surah: 3, page: 50, name: 'آل عمران' },
+  { surah: 4, page: 77, name: 'النساء' },
+  { surah: 5, page: 106, name: 'المائدة' },
+  { surah: 6, page: 128, name: 'الأنعام' },
+  { surah: 7, page: 151, name: 'الأعراف' },
+  { surah: 8, page: 177, name: 'الأنفال' },
+  { surah: 9, page: 187, name: 'التوبة' },
+  { surah: 10, page: 208, name: 'يونس' },
+  { surah: 11, page: 221, name: 'هود' },
+  { surah: 12, page: 235, name: 'يوسف' },
+  { surah: 13, page: 249, name: 'الرعد' },
+  { surah: 14, page: 255, name: 'إبراهيم' },
+  { surah: 15, page: 262, name: 'الحجر' },
+  { surah: 16, page: 267, name: 'النحل' },
+  { surah: 17, page: 282, name: 'الإسراء' },
+  { surah: 18, page: 293, name: 'الكهف' },
+  { surah: 19, page: 305, name: 'مريم' },
+  { surah: 20, page: 312, name: 'طه' },
+  { surah: 21, page: 322, name: 'الأنبياء' },
+  { surah: 22, page: 332, name: 'الحج' },
+  { surah: 23, page: 342, name: 'المؤمنون' },
+  { surah: 24, page: 350, name: 'النور' },
+  { surah: 25, page: 359, name: 'الفرقان' },
+  { surah: 26, page: 367, name: 'الشعراء' },
+  { surah: 27, page: 377, name: 'النمل' },
+  { surah: 28, page: 385, name: 'القصص' },
+  { surah: 29, page: 396, name: 'العنكبوت' },
+  { surah: 30, page: 404, name: 'الروم' },
+  { surah: 31, page: 411, name: 'لقمان' },
+  { surah: 32, page: 415, name: 'السجدة' },
+  { surah: 33, page: 418, name: 'الأحزاب' },
+  { surah: 34, page: 428, name: 'سبإ' },
+  { surah: 35, page: 434, name: 'فاطر' },
+  { surah: 36, page: 440, name: 'يس' },
+  { surah: 37, page: 446, name: 'الصافات' },
+  { surah: 38, page: 453, name: 'ص' },
+  { surah: 39, page: 458, name: 'الزمر' },
+  { surah: 40, page: 467, name: 'غافر' },
+  { surah: 41, page: 477, name: 'فصلت' },
+  { surah: 42, page: 483, name: 'الشورى' },
+  { surah: 43, page: 489, name: 'الزخرف' },
+  { surah: 44, page: 496, name: 'الدخان' },
+  { surah: 45, page: 499, name: 'الجاثية' },
+  { surah: 46, page: 502, name: 'الأحقاف' },
+  { surah: 47, page: 507, name: 'محمد' },
+  { surah: 48, page: 511, name: 'الفتح' },
+  { surah: 49, page: 515, name: 'الحجرات' },
+  { surah: 50, page: 518, name: 'ق' },
+  { surah: 51, page: 520, name: 'الذاريات' },
+  { surah: 52, page: 523, name: 'الطور' },
+  { surah: 53, page: 526, name: 'النجم' },
+  { surah: 54, page: 528, name: 'القمر' },
+  { surah: 55, page: 531, name: 'الرحمن' },
+  { surah: 56, page: 534, name: 'الواقعة' },
+  { surah: 57, page: 537, name: 'الحديد' },
+  { surah: 58, page: 542, name: 'المجادلة' },
+  { surah: 59, page: 545, name: 'الحشر' },
+  { surah: 60, page: 549, name: 'الممتحنة' },
+  { surah: 61, page: 551, name: 'الصف' },
+  { surah: 62, page: 553, name: 'الجمعة' },
+  { surah: 63, page: 554, name: 'المنافقون' },
+  { surah: 64, page: 556, name: 'التغابن' },
+  { surah: 65, page: 558, name: 'الطلاق' },
+  { surah: 66, page: 560, name: 'التحريم' },
+  { surah: 67, page: 562, name: 'الملك' },
+  { surah: 68, page: 564, name: 'القلم' },
+  { surah: 69, page: 566, name: 'الحاقة' },
+  { surah: 70, page: 568, name: 'المعارج' },
+  { surah: 71, page: 570, name: 'نوح' },
+  { surah: 72, page: 572, name: 'الجن' },
+  { surah: 73, page: 574, name: 'المزمل' },
+  { surah: 74, page: 575, name: 'المدثر' },
+  { surah: 75, page: 577, name: 'القيامة' },
+  { surah: 76, page: 578, name: 'الإنسان' },
+  { surah: 77, page: 580, name: 'المرسلات' },
+  { surah: 78, page: 582, name: 'النبأ' },
+  { surah: 79, page: 583, name: 'النازعات' },
+  { surah: 80, page: 585, name: 'عبس' },
+  { surah: 81, page: 586, name: 'التكوير' },
+  { surah: 82, page: 587, name: 'الانفطار' },
+  { surah: 83, page: 587, name: 'المطففين' },
+  { surah: 84, page: 589, name: 'الانشقاق' },
+  { surah: 85, page: 590, name: 'البروج' },
+  { surah: 86, page: 591, name: 'الطارق' },
+  { surah: 87, page: 591, name: 'الأعلى' },
+  { surah: 88, page: 592, name: 'الغاشية' },
+  { surah: 89, page: 593, name: 'الفجر' },
+  { surah: 90, page: 594, name: 'البلد' },
+  { surah: 91, page: 595, name: 'الشمس' },
+  { surah: 92, page: 595, name: 'الليل' },
+  { surah: 93, page: 596, name: 'الضحى' },
+  { surah: 94, page: 596, name: 'الشرح' },
+  { surah: 95, page: 597, name: 'التين' },
+  { surah: 96, page: 597, name: 'العلق' },
+  { surah: 97, page: 598, name: 'القدر' },
+  { surah: 98, page: 598, name: 'البينة' },
+  { surah: 99, page: 599, name: 'الزلزلة' },
+  { surah: 100, page: 599, name: 'العاديات' },
+  { surah: 101, page: 600, name: 'القارعة' },
+  { surah: 102, page: 600, name: 'التكاثر' },
+  { surah: 103, page: 601, name: 'العصر' },
+  { surah: 104, page: 601, name: 'الهمزة' },
+  { surah: 105, page: 601, name: 'الفيل' },
+  { surah: 106, page: 602, name: 'قريش' },
+  { surah: 107, page: 602, name: 'الماعون' },
+  { surah: 108, page: 602, name: 'الكوثر' },
+  { surah: 109, page: 603, name: 'الكافرون' },
+  { surah: 110, page: 603, name: 'النصر' },
+  { surah: 111, page: 603, name: 'المسد' },
+  { surah: 112, page: 604, name: 'الإخلاص' },
+  { surah: 113, page: 604, name: 'الفلق' },
+  { surah: 114, page: 604, name: 'الناس' },
+];
+
+function getSurahForPage(page: number): string {
+  let name = 'القرآن الكريم';
+  for (let i = 0; i < SURAH_PAGE_STARTS.length; i++) {
+    if (SURAH_PAGE_STARTS[i].page <= page) {
+      name = SURAH_PAGE_STARTS[i].name;
+    } else {
+      break;
+    }
+  }
+  return name;
 }
 
-// Convert to Eastern Arabic numerals
+function getJuzForPage(page: number): number {
+  // Each juz is roughly 20 pages
+  return Math.min(30, Math.max(1, Math.ceil(page / 20)));
+}
+
 function toArabicNumerals(n: number): string {
-  return n.toString().replace(/\d/g, (d) => '٠١٢٣٤٥٦٧٨٩'[parseInt(d)]);
-}
-
-// Approximate juz for a surah
-function getJuzForSurah(surahNum: number): number {
-  const juzMap: Record<number, number> = {
-    1:1,2:1,3:3,4:4,5:6,6:7,7:8,8:10,9:10,10:11,
-    11:12,12:12,13:13,14:13,15:14,16:14,17:15,18:15,
-    19:16,20:16,21:17,22:17,23:18,24:18,25:18,26:19,
-    27:19,28:20,29:20,30:21,31:21,32:21,33:21,34:22,
-    35:22,36:22,37:23,38:23,39:23,40:24,41:24,42:25,
-    43:25,44:25,45:25,46:26,47:26,48:26,49:26,50:26,
-    51:26,52:27,53:27,54:27,55:27,56:27,57:27,58:28,
-    59:28,60:28,61:28,62:28,63:28,64:28,65:28,66:28,
-    67:29,68:29,69:29,70:29,71:29,72:29,73:29,74:29,
-    75:29,76:29,77:29,78:30,79:30,80:30,81:30,82:30,
-    83:30,84:30,85:30,86:30,87:30,88:30,89:30,90:30,
-    91:30,92:30,93:30,94:30,95:30,96:30,97:30,98:30,
-    99:30,100:30,101:30,102:30,103:30,104:30,105:30,
-    106:30,107:30,108:30,109:30,110:30,111:30,112:30,
-    113:30,114:30,
-  };
-  return juzMap[surahNum] || 1;
+  return n.toString().replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[parseInt(d)]);
 }
 
 export const MushafPageView: React.FC<MushafPageViewProps> = ({
@@ -78,88 +174,54 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
     return initialPage;
   });
 
-  const [pageMap, setPageMap] = useState<Record<string, PageAyahRef[]> | null>(null);
-  const [pageAyahs, setPageAyahs] = useState<RenderedAyah[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [scale, setScale] = useState<number>(1);
+  const [imgLoading, setImgLoading] = useState<boolean>(true);
+  const [imgError, setImgError] = useState<boolean>(false);
+  const [useFallback, setUseFallback] = useState<boolean>(false);
   const [isBookmarked, setIsBookmarked] = useState<boolean>(false);
-  const [gotoInput, setGotoInput] = useState<string>('');
   const [showGoto, setShowGoto] = useState<boolean>(false);
+  const [gotoInput, setGotoInput] = useState<string>('');
 
-  // Swipe state
+  // Swipe / touch state
   const touchStartX = useRef<number>(0);
   const touchStartY = useRef<number>(0);
   const isSwiping = useRef<boolean>(false);
-  const pageRef = useRef<HTMLDivElement>(null);
 
-  // Load page_map.json once
-  useEffect(() => {
-    fetch('/quran/page_map.json')
-      .then(r => r.json())
-      .then(data => setPageMap(data))
-      .catch(err => console.error('page_map load error', err));
-  }, []);
+  // Preload next & prev pages for smooth navigation
+  const preloadRef = useRef<HTMLImageElement[]>([]);
 
-  // Update page when prop changes
   useEffect(() => {
     if (initialPage >= 1 && initialPage <= 604) {
       setCurrentPage(initialPage);
     }
   }, [initialPage]);
 
-  // Load ayahs for current page
+  // Reset image state on page change
   useEffect(() => {
-    if (!pageMap) return;
+    setImgLoading(true);
+    setImgError(false);
+    setUseFallback(false);
 
-    setIsLoading(true);
-    const refs: PageAyahRef[] = pageMap[String(currentPage)] || [];
+    // Save last page
+    try { localStorage.setItem(LS_MUSHAF_PAGE, String(currentPage)); } catch {}
 
-    if (refs.length === 0) {
-      setPageAyahs([]);
-      setIsLoading(false);
-      return;
-    }
+    // Check bookmark
+    try {
+      const bm = localStorage.getItem(LS_MUSHAF_BOOKMARKS);
+      const pages: number[] = bm ? JSON.parse(bm) : [];
+      setIsBookmarked(pages.includes(currentPage));
+    } catch {}
 
-    const surahNums = [...new Set(refs.map(r => r.s))];
-
-    Promise.all(surahNums.map(loadSurahVerses))
-      .then(results => {
-        const versesByS: Record<number, Record<string, string>> = {};
-        surahNums.forEach((s, i) => { versesByS[s] = results[i]; });
-
-        const rendered: RenderedAyah[] = refs.map((ref, idx) => {
-          const surahInfo = SURAH_LIST.find(s => s.number === ref.s);
-          const prevRef = refs[idx - 1];
-          const isFirstOfSurah = !prevRef || prevRef.s !== ref.s;
-
-          return {
-            surahNumber: ref.s,
-            surahName: surahInfo?.name || `سورة ${ref.s}`,
-            surahNameEn: surahInfo?.englishName || '',
-            surahType: surahInfo?.revelationType || 'Meccan',
-            ayahNumber: ref.a,
-            text: versesByS[ref.s]?.[`verse_${ref.a}`] || '',
-            isFirstOfSurah,
-            totalAyahs: surahInfo?.numberOfAyahs || 0,
-          };
-        });
-
-        setPageAyahs(rendered);
-        setIsLoading(false);
-
-        try { localStorage.setItem(LS_MUSHAF_PAGE, String(currentPage)); } catch {}
-
-        try {
-          const bm = localStorage.getItem(LS_MUSHAF_BOOKMARKS);
-          const pages: number[] = bm ? JSON.parse(bm) : [];
-          setIsBookmarked(pages.includes(currentPage));
-        } catch {}
-
-        // Scroll page content to top
-        pageRef.current?.scrollTo({ top: 0 });
-      })
-      .catch(() => setIsLoading(false));
-  }, [currentPage, pageMap]);
+    // Preload adjacent pages
+    preloadRef.current = [];
+    [-1, 1, 2].forEach(offset => {
+      const p = currentPage + offset;
+      if (p >= 1 && p <= 604) {
+        const img = new Image();
+        img.src = getPageImageUrl(p);
+        preloadRef.current.push(img);
+      }
+    });
+  }, [currentPage]);
 
   const goToPage = useCallback((page: number) => {
     const p = Math.max(1, Math.min(604, page));
@@ -174,10 +236,9 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
   };
 
   const handleTouchMove = (e: TouchEvent<HTMLDivElement>) => {
-    const dx = e.touches[0].clientX - touchStartX.current;
-    const dy = e.touches[0].clientY - touchStartY.current;
-    // If horizontal swipe is dominant, mark as swiping
-    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) {
+    const dx = Math.abs(e.touches[0].clientX - touchStartX.current);
+    const dy = Math.abs(e.touches[0].clientY - touchStartY.current);
+    if (dx > dy && dx > 15) {
       isSwiping.current = true;
     }
   };
@@ -185,14 +246,12 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
   const handleTouchEnd = (e: TouchEvent<HTMLDivElement>) => {
     if (!isSwiping.current) return;
     const dx = e.changedTouches[0].clientX - touchStartX.current;
-    // RTL: swipe right = previous page, swipe left = next page
-    if (Math.abs(dx) > 50) {
+    if (Math.abs(dx) > 60) {
+      // RTL: swipe right → previous page, swipe left → next page
       if (dx > 0) {
-        // Swipe right → previous page (in RTL context)
-        goToPage(currentPage - 1);
+        goToPage(currentPage - 1); // swipe right = prev (پچھلا)
       } else {
-        // Swipe left → next page
-        goToPage(currentPage + 1);
+        goToPage(currentPage + 1); // swipe left = next (اگلا)
       }
     }
     isSwiping.current = false;
@@ -223,17 +282,26 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
     }
   };
 
-  // Figure out juz for top header
-  const topJuz = pageAyahs.length > 0 ? getJuzForSurah(pageAyahs[0].surahNumber) : 1;
-  const bottomJuz = pageAyahs.length > 0 ? getJuzForSurah(pageAyahs[pageAyahs.length - 1].surahNumber) : 1;
+  const handleImgError = () => {
+    if (!useFallback) {
+      setUseFallback(true);
+      setImgLoading(true);
+    } else {
+      setImgError(true);
+      setImgLoading(false);
+    }
+  };
 
-  // Top surah names for header
-  const topSurahName = pageAyahs.length > 0 ? pageAyahs[pageAyahs.length - 1].surahName : '';
-  const topSurahNum = pageAyahs.length > 0 ? pageAyahs[pageAyahs.length - 1].surahNumber : 1;
+  const currentImageUrl = useFallback
+    ? getFallbackImageUrl(currentPage)
+    : getPageImageUrl(currentPage);
+
+  const surahName = getSurahForPage(currentPage);
+  const juzNum = getJuzForPage(currentPage);
 
   return (
     <div
-      className="flex flex-col h-screen bg-[#2c1810] text-white select-none"
+      className="flex flex-col h-screen bg-[#0d1117] overflow-hidden"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -249,183 +317,61 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
         </button>
 
         <div className="text-center">
-          <p className="text-[#d4af37] text-xs font-bold">{topSurahName}</p>
-          <p className="text-slate-400 text-[9px]">16 سطری تجویدی مصحف</p>
+          <p className="text-[#d4af37] text-xs font-bold" dir="rtl">{surahName}</p>
+          <p className="text-slate-400 text-[9px]">الجزء {toArabicNumerals(juzNum)} • صفحہ {toArabicNumerals(currentPage)}</p>
         </div>
 
         <div className="flex items-center gap-1.5">
-          <button onClick={() => setScale(s => Math.max(0.75, +(s - 0.1).toFixed(1)))} className="p-1 text-slate-400 hover:text-[#d4af37]">
-            <ZoomOut className="w-4 h-4" />
-          </button>
-          <button onClick={() => setScale(1)} className="p-1 text-slate-400 hover:text-[#d4af37]">
-            <RotateCcw className="w-3.5 h-3.5" />
-          </button>
-          <button onClick={() => setScale(s => Math.min(1.5, +(s + 0.1).toFixed(1)))} className="p-1 text-slate-400 hover:text-[#d4af37]">
-            <ZoomIn className="w-4 h-4" />
-          </button>
-          <button onClick={toggleBookmark} className={`p-1 ${isBookmarked ? 'text-[#d4af37]' : 'text-slate-400 hover:text-[#d4af37]'}`}>
+          <button
+            onClick={toggleBookmark}
+            className={`p-1.5 transition-colors ${isBookmarked ? 'text-[#d4af37]' : 'text-slate-400 hover:text-[#d4af37]'}`}
+          >
             <Bookmark className="w-4 h-4" fill={isBookmarked ? '#d4af37' : 'none'} />
           </button>
         </div>
       </div>
 
-      {/* Mushaf Page Content */}
-      <div
-        ref={pageRef}
-        className="flex-1 overflow-y-auto overflow-x-hidden"
-      >
-        {isLoading || !pageMap ? (
-          <div className="flex flex-col items-center justify-center h-full gap-3">
-            <div className="w-8 h-8 border-4 border-[#d4af37]/30 border-t-[#d4af37] rounded-full animate-spin" />
+      {/* Page Image Area */}
+      <div className="flex-1 overflow-hidden relative bg-[#1a1a1a] flex items-center justify-center">
+        {imgLoading && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-10">
+            <Loader2 className="w-8 h-8 animate-spin text-[#d4af37]" />
             <p className="text-slate-400 text-sm">صفحہ لوڈ ہو رہا ہے...</p>
           </div>
-        ) : (
-          <div
-            className="mx-2 my-2"
-            style={{ transform: `scale(${scale})`, transformOrigin: 'top center' }}
-          >
-            {/* Mushaf Page - Cream paper style */}
-            <div
-              className="bg-[#fdf6e3] rounded-lg shadow-2xl overflow-hidden"
-              style={{
-                border: '2px solid #8B6914',
-                boxShadow: '0 0 0 1px #d4af37, 0 4px 20px rgba(0,0,0,0.5)',
-              }}
-            >
-              {/* Page top info bar */}
-              <div
-                className="flex items-center justify-between px-3 py-1"
-                style={{ borderBottom: '1px solid #c9a84c', background: 'linear-gradient(to bottom, #f5e6c0, #f0dba0)' }}
-              >
-                <span className="text-[#5C3317] text-[10px] font-bold" style={{ fontFamily: 'serif' }}>
-                  {topJuz !== bottomJuz
-                    ? `${toArabicNumerals(topJuz)} جزء`
-                    : `الجزء ${toArabicNumerals(topJuz)}`}
-                </span>
-                <span className="text-[#5C3317] text-[10px] font-bold" style={{ fontFamily: 'serif' }}>
-                  {topSurahName}
-                </span>
-              </div>
+        )}
 
-              {/* Actual Quran Text Area */}
-              <div className="px-3 pt-3 pb-2">
-                {/* Render as continuous inline text — real mushaf style */}
-                <div
-                  className="text-right leading-[2.6]"
-                  dir="rtl"
-                  style={{
-                    fontFamily: '"PDMS_Saleem_QuranFont", "Scheherazade New", "me_quran", "Noto Naskh Arabic", serif',
-                    fontSize: `${1.18 * scale}rem`,
-                    color: '#1a0a00',
-                    wordSpacing: '0.05em',
-                  }}
-                >
-                  {pageAyahs.map((ayah, idx) => (
-                    <React.Fragment key={`${ayah.surahNumber}-${ayah.ayahNumber}`}>
-
-                      {/* Surah header — only when this page starts with the first ayah of a new surah */}
-                      {ayah.isFirstOfSurah && ayah.ayahNumber === 1 && (
-                        <div className="block mb-2 mt-1" style={{ direction: 'rtl' }}>
-                          {/* Surah name box */}
-                          <div
-                            className="text-center py-1.5 mx-2 rounded"
-                            style={{
-                              border: '1.5px solid #8B6914',
-                              background: 'linear-gradient(to bottom, #fdf0c0, #f5e090)',
-                            }}
-                          >
-                            <div className="flex items-center justify-between px-3 text-[9px] text-[#5C3317]">
-                              <span>{ayah.surahType === 'Meccan' ? 'مکیہ' : 'مدنیہ'}</span>
-                              <span>آیات {toArabicNumerals(ayah.totalAyahs)}</span>
-                            </div>
-                            <p
-                              className="text-[#2c0a00] font-bold"
-                              style={{ fontSize: '1rem', fontFamily: 'serif' }}
-                            >
-                              سُوْرَةُ {ayah.surahName}
-                            </p>
-                          </div>
-
-                          {/* Bismillah — only at start of surah, not surah 9 */}
-                          {ayah.surahNumber !== 9 && (
-                            <div
-                              className="text-center py-2 mt-1.5 mx-1 rounded"
-                              style={{
-                                border: '1px solid #c9a84c',
-                                background: '#fdf8f0',
-                              }}
-                            >
-                              <span
-                                style={{
-                                  fontFamily: '"PDMS_Saleem_QuranFont", "Scheherazade New", serif',
-                                  fontSize: '1.15rem',
-                                  color: '#2c0a00',
-                                }}
-                              >
-                                بِسۡمِ ٱللَّهِ ٱلرَّحۡمَـٰنِ ٱلرَّحِیمِ
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Inline ayah text + number circle */}
-                      <span
-                        dangerouslySetInnerHTML={{ __html: formatTajweed(ayah.text) }}
-                        style={{ display: 'inline' }}
-                      />
-                      {/* Ayah number circle - inline */}
-                      <span
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          width: '1.4em',
-                          height: '1.4em',
-                          borderRadius: '50%',
-                          border: '1.5px solid #8B6914',
-                          background: 'rgba(212,175,55,0.15)',
-                          color: '#5C3317',
-                          fontSize: '0.55em',
-                          fontWeight: 'bold',
-                          margin: '0 0.15em',
-                          verticalAlign: 'middle',
-                          fontFamily: 'serif',
-                          lineHeight: 1,
-                        }}
-                      >
-                        {toArabicNumerals(ayah.ayahNumber)}
-                      </span>
-                      {' '}
-                    </React.Fragment>
-                  ))}
-                </div>
-              </div>
-
-              {/* Page bottom bar */}
-              <div
-                className="flex items-center justify-between px-3 py-1"
-                style={{ borderTop: '1px solid #c9a84c', background: 'linear-gradient(to top, #f5e6c0, #f0dba0)' }}
-              >
-                <span className="text-[#5C3317] text-[10px] font-bold">
-                  {currentPage % 2 === 0 ? `${currentPage}` : ''}
-                </span>
-                <span className="text-[#5C3317] text-[10px]" style={{ fontFamily: 'serif' }}>
-                  {pageAyahs.length > 0 && pageAyahs[pageAyahs.length - 1].ayahNumber < pageAyahs[pageAyahs.length - 1].totalAyahs
-                    ? `منزل ${toArabicNumerals(Math.ceil(pageAyahs[0].surahNumber / 16))}`
-                    : ''}
-                </span>
-                <span className="text-[#5C3317] text-[10px] font-bold">
-                  {currentPage % 2 !== 0 ? `${currentPage}` : ''}
-                </span>
-              </div>
+        {imgError ? (
+          /* Fallback text rendering if images not available */
+          <div className="flex flex-col items-center justify-center gap-4 p-6 text-center">
+            <div className="w-16 h-16 rounded-full bg-[#1a3a2a] flex items-center justify-center">
+              <span className="text-2xl">📖</span>
             </div>
-
-            {/* Swipe hint */}
-            <p className="text-center text-slate-500 text-[9px] mt-1 mb-1">
-              ← انگلی سے سوائپ کریں یا نیچے کے بٹن دبائیں →
+            <p className="text-slate-300 text-sm">
+              صفحہ {currentPage} لوڈ نہ ہو سکا
             </p>
+            <p className="text-slate-500 text-xs">انٹرنیٹ کنیکشن چیک کریں</p>
+            <button
+              onClick={() => { setImgError(false); setImgLoading(true); setUseFallback(false); }}
+              className="px-4 py-2 bg-[#d4af37] text-[#1a3a2a] rounded-lg text-sm font-bold"
+            >
+              دوبارہ کوشش کریں
+            </button>
           </div>
+        ) : (
+          <img
+            key={`${currentPage}-${useFallback}`}
+            src={currentImageUrl}
+            alt={`صفحہ ${currentPage}`}
+            className="max-w-full max-h-full object-contain"
+            style={{
+              display: imgLoading ? 'none' : 'block',
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+            }}
+            onLoad={() => setImgLoading(false)}
+            onError={handleImgError}
+          />
         )}
       </div>
 
@@ -439,7 +385,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
               max={604}
               value={gotoInput}
               onChange={e => setGotoInput(e.target.value)}
-              placeholder="صفحہ نمبر (1-604)"
+              placeholder="صفحہ نمبر 1-604"
               className="flex-1 bg-[#0d1117] border border-[#d4af37]/40 rounded-lg px-3 py-1.5 text-white text-sm text-right placeholder-slate-500 focus:outline-none focus:border-[#d4af37]"
               autoFocus
               dir="rtl"
@@ -454,7 +400,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
         )}
 
         <div className="flex items-center justify-between gap-2">
-          {/* اگلا صفحہ — Next */}
+          {/* اگلا صفحہ */}
           <button
             onClick={() => goToPage(currentPage + 1)}
             disabled={currentPage >= 604}
@@ -464,7 +410,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
             اگلا صفحہ
           </button>
 
-          {/* Page number - tap to go to page */}
+          {/* Page counter */}
           <button
             onClick={() => setShowGoto(v => !v)}
             className="flex-1 py-2 bg-[#0d1117]/60 rounded-xl border border-[#d4af37]/20 text-center hover:border-[#d4af37]/50 transition-all"
@@ -474,7 +420,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
             </span>
           </button>
 
-          {/* پچھلا صفحہ — Previous */}
+          {/* پچھلا صفحہ */}
           <button
             onClick={() => goToPage(currentPage - 1)}
             disabled={currentPage <= 1}
