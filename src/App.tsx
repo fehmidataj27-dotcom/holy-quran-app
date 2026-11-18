@@ -13,10 +13,11 @@ import { PrayerTimesView } from './components/PrayerTimesView';
 import { JuzIndexView } from './components/JuzIndexView';
 import { SurahIndexView } from './components/SurahIndexView';
 import { GotoPageModal } from './components/GotoPageModal';
-import { BookmarksView, BookmarkItem } from './components/BookmarksView';
+import { BookmarksView, AyahBookmarkItem } from './components/BookmarksView';
 import { MushafPageView } from './components/MushafPageView';
 import { getPrayerTimes, getHijriDate } from './utils/prayerTimes';
 import { JUZ_LIST, JuzInfo } from './data/juz';
+import { getSurahStartPage } from './data/surahPages';
 import { Home } from 'lucide-react';
 import { getAyahAudioUrl } from './utils/ayahAudioHelper';
 import { fetchSurahTimings, VerseTiming } from './utils/timingService';
@@ -65,9 +66,15 @@ export const App: React.FC = () => {
   const [currentMushafPage, setCurrentMushafPage] = useState<number>(1);
   const [isAdmissionModalOpen, setIsAdmissionModalOpen] = useState<boolean>(true);
   const [isGotoPageOpen, setIsGotoPageOpen] = useState<boolean>(false);
-  const [savedBookmarks, setSavedBookmarks] = useState<BookmarkItem[]>(() => {
+  const [savedBookmarks, setSavedBookmarks] = useState<AyahBookmarkItem[]>(() => {
     try {
       const data = localStorage.getItem('quran_saved_bookmarks_v2');
+      return data ? JSON.parse(data) : [];
+    } catch { return []; }
+  });
+  const [pageBookmarks, setPageBookmarks] = useState<number[]>(() => {
+    try {
+      const data = localStorage.getItem('quran_mushaf_page_bookmarks');
       return data ? JSON.parse(data) : [];
     } catch { return []; }
   });
@@ -77,11 +84,11 @@ export const App: React.FC = () => {
 
   const handleToggleSavedBookmark = (ayahNumber: number) => {
     const existingIndex = savedBookmarks.findIndex(b => b.surahNumber === selectedSurah.number && b.ayahNumber === ayahNumber);
-    let updated: BookmarkItem[];
+    let updated: AyahBookmarkItem[];
     if (existingIndex >= 0) {
       updated = savedBookmarks.filter((_, idx) => idx !== existingIndex);
     } else {
-      const newBm: BookmarkItem = {
+      const newBm: AyahBookmarkItem = {
         id: `${selectedSurah.number}_${ayahNumber}_${Date.now()}`,
         surahNumber: selectedSurah.number,
         surahName: selectedSurah.name,
@@ -517,8 +524,8 @@ export const App: React.FC = () => {
           onSelectSurah={(surah, mode) => {
             handleSelectSurah(surah);
             if (mode === 'read') {
-              const matchedJuz = JUZ_LIST.slice().reverse().find(j => j.startSurah <= surah.number) || JUZ_LIST[0];
-              setCurrentMushafPage(matchedJuz.page);
+              const startPage = getSurahStartPage(surah.number);
+              setCurrentMushafPage(startPage);
               setCurrentView('mushaf_page');
             } else {
               setCurrentView('quran');
@@ -545,8 +552,9 @@ export const App: React.FC = () => {
   if (currentView === 'bookmarks') {
     return (
       <BookmarksView
-        bookmarks={savedBookmarks}
-        onSelectBookmark={(surahNum, ayahNum) => {
+        ayahBookmarks={savedBookmarks}
+        pageBookmarks={pageBookmarks}
+        onSelectAyahBookmark={(surahNum, ayahNum) => {
           const s = SURAH_LIST.find(item => item.number === surahNum);
           if (s) setSelectedSurah(s);
           setCurrentView('quran');
@@ -555,10 +563,19 @@ export const App: React.FC = () => {
             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }, 400);
         }}
-        onRemoveBookmark={(id) => {
+        onSelectPageBookmark={(page) => {
+          setCurrentMushafPage(page);
+          setCurrentView('mushaf_page');
+        }}
+        onRemoveAyahBookmark={(id) => {
           const updated = savedBookmarks.filter(b => b.id !== id);
           setSavedBookmarks(updated);
           localStorage.setItem('quran_saved_bookmarks_v2', JSON.stringify(updated));
+        }}
+        onRemovePageBookmark={(page) => {
+          const updated = pageBookmarks.filter(p => p !== page);
+          setPageBookmarks(updated);
+          localStorage.setItem('quran_mushaf_page_bookmarks', JSON.stringify(updated));
         }}
         onBack={() => setCurrentView('home')}
       />
@@ -574,11 +591,29 @@ export const App: React.FC = () => {
           prayerTimes={prayerTimes}
           lastReadSurah={selectedSurah}
           lastReadJuz={Math.ceil(selectedSurah.number / 4)}
-          onResumeReading={() => { setCurrentMushafPage(1); setCurrentView('mushaf_page'); }}
+          onResumeReading={() => {
+            try {
+              const saved = Number(localStorage.getItem('quran_mushaf_last_page'));
+              if (saved >= 1 && saved <= 604) {
+                setCurrentMushafPage(saved);
+              } else {
+                setCurrentMushafPage(1);
+              }
+            } catch {
+              setCurrentMushafPage(1);
+            }
+            setCurrentView('mushaf_page');
+          }}
           onOpenJuzIndex={() => setCurrentView('juz_index')}
           onOpenSurahIndex={() => setCurrentView('surah_index')}
           onOpenGotoPage={() => setIsGotoPageOpen(true)}
-          onOpenBookmarks={() => setCurrentView('bookmarks')}
+          onOpenBookmarks={() => {
+            try {
+              const data = localStorage.getItem('quran_mushaf_page_bookmarks');
+              if (data) setPageBookmarks(JSON.parse(data));
+            } catch {}
+            setCurrentView('bookmarks');
+          }}
           onOpenPrayerTimes={() => setCurrentView('prayer_times')}
           onOpenAdmissionModal={() => setIsAdmissionModalOpen(true)}
         />
@@ -615,6 +650,15 @@ export const App: React.FC = () => {
             onTimeUpdate={handleSurahTimeUpdate}
           />
         )}
+
+        {/* Reciter Modal Accessible from Home if player opened it */}
+        <ReciterModal
+          isOpen={isReciterModalOpen}
+          onClose={() => setIsReciterModalOpen(false)}
+          selectedReciter={selectedReciter}
+          onSelectReciter={handleSelectReciter}
+          onSelectSurah={handleSelectSurah}
+        />
       </>
     );
   }
