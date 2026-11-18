@@ -595,12 +595,12 @@ export const App: React.FC = () => {
         <GotoPageModal
           isOpen={isGotoPageOpen}
           onClose={() => setIsGotoPageOpen(false)}
-          onGoToSurah={(surahNum) => {
-            const juz = JUZ_LIST.find(j => j.startSurah >= surahNum) || JUZ_LIST[0];
-            setCurrentMushafPage(juz.page);
+          onGoToPage={(pageNum, surahNum) => {
+            const s = SURAH_LIST.find(item => item.number === surahNum) || SURAH_LIST[0];
+            setSelectedSurah(s);
+            setCurrentMushafPage(pageNum);
             setCurrentView('mushaf_page');
           }}
-          surahs={SURAH_LIST}
         />
 
         {/* Audio Player in Background if already playing */}
