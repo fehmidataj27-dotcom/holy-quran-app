@@ -7,6 +7,16 @@ import { AudioStudioPlayer } from './components/AudioStudioPlayer';
 import { ReciterModal } from './components/ReciterModal';
 import { SurahSidebar } from './components/SurahSidebar';
 import { TajweedGuide } from './components/TajweedGuide';
+import { HomeDashboard } from './components/HomeDashboard';
+import { AdmissionModal } from './components/AdmissionModal';
+import { PrayerTimesView } from './components/PrayerTimesView';
+import { JuzIndexView } from './components/JuzIndexView';
+import { SurahIndexView } from './components/SurahIndexView';
+import { GotoPageModal } from './components/GotoPageModal';
+import { BookmarksView, BookmarkItem } from './components/BookmarksView';
+import { getPrayerTimes, getHijriDate } from './utils/prayerTimes';
+import { JUZ_LIST, JuzInfo } from './data/juz';
+import { Home } from 'lucide-react';
 import { getAyahAudioUrl } from './utils/ayahAudioHelper';
 import { fetchSurahTimings, VerseTiming } from './utils/timingService';
 import {
@@ -49,6 +59,47 @@ function getSavedSurah(): Surah {
 }
 
 export const App: React.FC = () => {
+  // Navigation View State: 'home' | 'quran' | 'prayer_times' | 'juz_index' | 'surah_index' | 'bookmarks'
+  const [currentView, setCurrentView] = useState<'home' | 'quran' | 'prayer_times' | 'juz_index' | 'surah_index' | 'bookmarks'>('home');
+  const [isAdmissionModalOpen, setIsAdmissionModalOpen] = useState<boolean>(true);
+  const [isGotoPageOpen, setIsGotoPageOpen] = useState<boolean>(false);
+  const [savedBookmarks, setSavedBookmarks] = useState<BookmarkItem[]>(() => {
+    try {
+      const data = localStorage.getItem('quran_saved_bookmarks_v2');
+      return data ? JSON.parse(data) : [];
+    } catch { return []; }
+  });
+
+  const prayerTimes = getPrayerTimes();
+  const hijriDate = getHijriDate();
+
+  const handleToggleSavedBookmark = (ayahNumber: number) => {
+    const existingIndex = savedBookmarks.findIndex(b => b.surahNumber === selectedSurah.number && b.ayahNumber === ayahNumber);
+    let updated: BookmarkItem[];
+    if (existingIndex >= 0) {
+      updated = savedBookmarks.filter((_, idx) => idx !== existingIndex);
+    } else {
+      const newBm: BookmarkItem = {
+        id: `${selectedSurah.number}_${ayahNumber}_${Date.now()}`,
+        surahNumber: selectedSurah.number,
+        surahName: selectedSurah.name,
+        ayahNumber: ayahNumber,
+        timestamp: new Date().toLocaleDateString('ur-PK', { month: 'short', day: 'numeric' })
+      };
+      updated = [newBm, ...savedBookmarks];
+    }
+    setSavedBookmarks(updated);
+    try {
+      localStorage.setItem('quran_saved_bookmarks_v2', JSON.stringify(updated));
+    } catch {}
+  };
+
+  const handleSelectJuz = (juz: JuzInfo) => {
+    const surah = SURAH_LIST.find(s => s.number === juz.startSurah) || SURAH_LIST[0];
+    setSelectedSurah(surah);
+    setCurrentView('quran');
+  };
+
   const [selectedSurah,   setSelectedSurah]   = useState<Surah>(getSavedSurah);
   const [selectedReciter, setSelectedReciter] = useState<Reciter>(getSavedReciter);
 
@@ -422,6 +473,135 @@ export const App: React.FC = () => {
     setIsReciterModalOpen(false);
     setIsPlaying(true);
   }, [stopAyahAudio]);
+
+  
+  // Render Prayer Times View
+  if (currentView === 'prayer_times') {
+    return (
+      <PrayerTimesView
+        prayerTimes={prayerTimes}
+        onBack={() => setCurrentView('home')}
+      />
+    );
+  }
+
+  // Render Juz Index View
+  if (currentView === 'juz_index') {
+    return (
+      <JuzIndexView
+        onSelectJuz={handleSelectJuz}
+        onBack={() => setCurrentView('home')}
+      />
+    );
+  }
+
+  // Render Surah Index View
+  if (currentView === 'surah_index') {
+    return (
+      <>
+        <SurahIndexView
+          surahs={SURAH_LIST}
+          selectedReciter={selectedReciter}
+          onSelectSurah={(surah, mode) => {
+            handleSelectSurah(surah);
+            setCurrentView('quran');
+            if (mode === 'play') {
+              setTimeout(() => {
+                setIsPlaying(true);
+              }, 300);
+            }
+          }}
+          onChangeReciter={() => setIsReciterModalOpen(true)}
+          onBack={() => setCurrentView('home')}
+        />
+        <ReciterModal
+          isOpen={isReciterModalOpen}
+          onClose={() => setIsReciterModalOpen(false)}
+          selectedReciter={selectedReciter}
+          onSelectReciter={handleSelectReciter}
+          onSelectSurah={handleSelectSurah}
+        />
+      </>
+    );
+  }
+
+  // Render Bookmarks View
+  if (currentView === 'bookmarks') {
+    return (
+      <BookmarksView
+        bookmarks={savedBookmarks}
+        onSelectBookmark={(surahNum, ayahNum) => {
+          const s = SURAH_LIST.find(item => item.number === surahNum);
+          if (s) setSelectedSurah(s);
+          setCurrentView('quran');
+          setTimeout(() => {
+            const el = ayahRefs.current[ayahNum];
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 400);
+        }}
+        onRemoveBookmark={(id) => {
+          const updated = savedBookmarks.filter(b => b.id !== id);
+          setSavedBookmarks(updated);
+          localStorage.setItem('quran_saved_bookmarks_v2', JSON.stringify(updated));
+        }}
+        onBack={() => setCurrentView('home')}
+      />
+    );
+  }
+
+  // Render Home Dashboard View
+  if (currentView === 'home') {
+    return (
+      <>
+        <HomeDashboard
+          hijriDate={hijriDate}
+          prayerTimes={prayerTimes}
+          lastReadSurah={selectedSurah}
+          lastReadJuz={Math.ceil(selectedSurah.number / 4)}
+          onResumeReading={() => setCurrentView('quran')}
+          onOpenJuzIndex={() => setCurrentView('juz_index')}
+          onOpenSurahIndex={() => setCurrentView('surah_index')}
+          onOpenGotoPage={() => setIsGotoPageOpen(true)}
+          onOpenBookmarks={() => setCurrentView('bookmarks')}
+          onOpenPrayerTimes={() => setCurrentView('prayer_times')}
+          onOpenAdmissionModal={() => setIsAdmissionModalOpen(true)}
+        />
+
+        {/* Admission Popup on App Launch */}
+        <AdmissionModal
+          isOpen={isAdmissionModalOpen}
+          onClose={() => setIsAdmissionModalOpen(false)}
+        />
+
+        {/* Goto Page Modal */}
+        <GotoPageModal
+          isOpen={isGotoPageOpen}
+          onClose={() => setIsGotoPageOpen(false)}
+          onGoToSurah={(surahNum) => {
+            const s = SURAH_LIST.find(item => item.number === surahNum) || SURAH_LIST[0];
+            setSelectedSurah(s);
+            setCurrentView('quran');
+          }}
+          surahs={SURAH_LIST}
+        />
+
+        {/* Audio Player in Background if already playing */}
+        {isPlaying && (
+          <AudioStudioPlayer
+            currentReciter={selectedReciter}
+            currentSurah={selectedSurah}
+            currentAyah={currentPlayingAyah}
+            isPlaying={isPlaying}
+            onTogglePlay={handleTogglePlay}
+            onNextSurah={handleNextSurah}
+            onPrevSurah={handlePrevSurah}
+            onSelectReciterModal={() => setIsReciterModalOpen(true)}
+            onTimeUpdate={handleSurahTimeUpdate}
+          />
+        )}
+      </>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#070d17] text-slate-100 flex pb-32">
