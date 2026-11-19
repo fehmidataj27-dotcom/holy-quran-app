@@ -71,7 +71,13 @@ export const App: React.FC = () => {
   // Navigation View State: 'home' | 'quran' | 'prayer_times' | 'juz_index' | 'surah_index' | 'bookmarks'
   const [currentView, setCurrentView] = useState<'home' | 'quran' | 'prayer_times' | 'juz_index' | 'surah_index' | 'bookmarks' | 'mushaf_page'>('home');
   const [currentMushafPage, setCurrentMushafPage] = useState<number>(1);
-  const [isAdmissionModalOpen, setIsAdmissionModalOpen] = useState<boolean>(true);
+  const [isAdmissionModalOpen, setIsAdmissionModalOpen] = useState<boolean>(() => {
+    try {
+      return !sessionStorage.getItem('admission_modal_dismissed');
+    } catch {
+      return false;
+    }
+  });
   const [isGotoPageOpen, setIsGotoPageOpen] = useState<boolean>(false);
   const [savedBookmarks, setSavedBookmarks] = useState<AyahBookmarkItem[]>(() => {
     try {
@@ -646,7 +652,10 @@ export const App: React.FC = () => {
         {/* Admission Popup on App Launch */}
         <AdmissionModal
           isOpen={isAdmissionModalOpen}
-          onClose={() => setIsAdmissionModalOpen(false)}
+          onClose={() => {
+            setIsAdmissionModalOpen(false);
+            try { sessionStorage.setItem('admission_modal_dismissed', '1'); } catch {}
+          }}
         />
 
         {/* Goto Page Modal */}
