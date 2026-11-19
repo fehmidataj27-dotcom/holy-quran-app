@@ -69,4 +69,4 @@ export function getPageMeta(page: number): PageMeta {
 `;
 
 fs.writeFileSync(path.join(baseDir, 'src/data/pageMeta.ts'), fileContent, 'utf8');
-console.log('src/data/pageMeta.ts generated successfully!');
+console.log('src/data/pageMeta.ts updated with MIN_PAGE = 1');
