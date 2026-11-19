@@ -2,10 +2,12 @@ import React, { useState, useEffect, useCallback, useRef, TouchEvent } from 'rea
 import { ChevronRight, ChevronLeft, Bookmark, ZoomIn, ZoomOut, RotateCcw, Loader2 } from 'lucide-react';
 import { formatTajweed } from '../utils/tajweed';
 import { SURAH_LIST } from '../data/surahs';
+import { getPageMeta } from '../data/pageMeta';
 
 interface MushafPageViewProps {
   initialPage?: number;
   onBack: () => void;
+  onPageChange?: (page: number) => void;
 }
 
 interface PageAyahRef {
@@ -47,38 +49,18 @@ function toArabicNumerals(n: number): string {
   return n.toString().replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[parseInt(d)]);
 }
 
-function getJuzForSurah(surahNum: number): number {
-  const juzMap: Record<number, number> = {
-    1:1,2:1,3:3,4:4,5:6,6:7,7:8,8:10,9:10,10:11,
-    11:12,12:12,13:13,14:13,15:14,16:14,17:15,18:15,
-    19:16,20:16,21:17,22:17,23:18,24:18,25:18,26:19,
-    27:19,28:20,29:20,30:21,31:21,32:21,33:21,34:22,
-    35:22,36:22,37:23,38:23,39:23,40:24,41:24,42:25,
-    43:25,44:25,45:25,46:26,47:26,48:26,49:26,50:26,
-    51:26,52:27,53:27,54:27,55:27,56:27,57:27,58:28,
-    59:28,60:28,61:28,62:28,63:28,64:28,65:28,66:28,
-    67:29,68:29,69:29,70:29,71:29,72:29,73:29,74:29,
-    75:29,76:29,77:29,78:30,79:30,80:30,81:30,82:30,
-    83:30,84:30,85:30,86:30,87:30,88:30,89:30,90:30,
-    91:30,92:30,93:30,94:30,95:30,96:30,97:30,98:30,
-    99:30,100:30,101:30,102:30,103:30,104:30,105:30,
-    106:30,107:30,108:30,109:30,110:30,111:30,112:30,
-    113:30,114:30,
-  };
-  return juzMap[surahNum] || 1;
-}
-
 export const MushafPageView: React.FC<MushafPageViewProps> = ({
   initialPage = 1,
   onBack,
+  onPageChange,
 }) => {
   const [currentPage, setCurrentPage] = useState<number>(() => {
-    if (initialPage > 1) return initialPage;
+    if (initialPage >= 1 && initialPage <= 604) return initialPage;
     try {
       const saved = Number(localStorage.getItem(LS_MUSHAF_PAGE));
       if (saved >= 1 && saved <= 604) return saved;
     } catch {}
-    return initialPage;
+    return 1;
   });
 
   const [pageMap, setPageMap] = useState<Record<string, PageAyahRef[]> | null>(null);
@@ -102,6 +84,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
       .catch(err => console.error('Failed to load page_map.json:', err));
   }, []);
 
+  // Update currentPage if initialPage prop changes
   useEffect(() => {
     if (initialPage >= 1 && initialPage <= 604) {
       setCurrentPage(initialPage);
@@ -149,7 +132,13 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
         setPageAyahs(list);
         setIsLoading(false);
 
-        try { localStorage.setItem(LS_MUSHAF_PAGE, String(currentPage)); } catch {}
+        try {
+          localStorage.setItem(LS_MUSHAF_PAGE, String(currentPage));
+        } catch {}
+
+        if (onPageChange) {
+          onPageChange(currentPage);
+        }
 
         try {
           const bm = localStorage.getItem(LS_MUSHAF_BOOKMARKS);
@@ -166,14 +155,14 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
         console.error('Error rendering page:', err);
         setIsLoading(false);
       });
-  }, [currentPage, pageMap]);
+  }, [currentPage, pageMap, onPageChange]);
 
   const goToPage = useCallback((page: number) => {
     const p = Math.max(1, Math.min(604, page));
     setCurrentPage(p);
   }, []);
 
-  // Swipe gesture detection
+  // Swipe gesture detection (left/right only)
   const handleTouchStart = (e: TouchEvent<HTMLDivElement>) => {
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
@@ -191,7 +180,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
   const handleTouchEnd = (e: TouchEvent<HTMLDivElement>) => {
     if (!isSwiping.current) return;
     const dx = e.changedTouches[0].clientX - touchStartX.current;
-    if (Math.abs(dx) > 50) {
+    if (Math.abs(dx) > 40) {
       if (dx > 0) {
         // Finger swiped right -> Previous page
         goToPage(currentPage - 1);
@@ -228,10 +217,10 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
     }
   };
 
-  const firstAyah = pageAyahs[0];
-  const lastAyah = pageAyahs[pageAyahs.length - 1];
-  const headerSurah = lastAyah ? lastAyah.surahName : '';
-  const currentJuz = firstAyah ? getJuzForSurah(firstAyah.surahNumber) : 1;
+  const meta = getPageMeta(currentPage);
+  const activeSurahInfo = SURAH_LIST.find(s => s.number === meta.surahNumber) || SURAH_LIST[0];
+  const headerSurah = activeSurahInfo.name;
+  const currentJuz = meta.juzNumber;
 
   return (
     <div
@@ -294,10 +283,10 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
       {/* Main Mushaf Page Canvas */}
       <div
         ref={contentRef}
-        className="flex-1 overflow-y-auto overflow-x-hidden p-2 sm:p-4 flex justify-center bg-[#181310]"
+        className="flex-1 overflow-y-auto overflow-x-hidden p-2 sm:p-4 flex justify-center items-start sm:items-center bg-[#181310]"
       >
         {isLoading || !pageMap ? (
-          <div className="flex flex-col items-center justify-center h-full gap-3">
+          <div className="flex flex-col items-center justify-center h-full gap-3 py-16">
             <Loader2 className="w-9 h-9 animate-spin text-[#d4af37]" />
             <p className="text-[#d4af37] text-xs">صفحہ {currentPage} لوڈ ہو رہا ہے...</p>
           </div>
@@ -333,7 +322,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
               {/* Text Body - Justified Continuous 16-Line Style Arabic */}
               <div className="px-4 py-3 sm:px-6 sm:py-5 min-h-[68vh] flex flex-col justify-between">
                 <div
-                  className="text-justify leading-[2.6] sm:leading-[2.8]"
+                  className="text-justify leading-[2.5] sm:leading-[2.7]"
                   dir="rtl"
                   style={{
                     fontFamily: '"Amiri Quran", "PDMS_Saleem_QuranFont", "Scheherazade New", serif',
@@ -342,9 +331,9 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                     textJustify: 'inter-word',
                   }}
                 >
-                  {pageAyahs.map((ayah, idx) => (
+                  {pageAyahs.map((ayah) => (
                     <React.Fragment key={`${ayah.surahNumber}-${ayah.ayahNumber}`}>
-                      {/* Surah Banner: ONLY if a new surah starts on this page */}
+                      {/* Surah Banner: ONLY if a new surah starts on this page at Ayah 1 */}
                       {ayah.isFirstOfSurah && ayah.ayahNumber === 1 && (
                         <div className="block my-3 text-center" dir="rtl">
                           <div

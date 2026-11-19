@@ -18,6 +18,7 @@ import { MushafPageView } from './components/MushafPageView';
 import { getPrayerTimes, getHijriDate } from './utils/prayerTimes';
 import { JUZ_LIST, JuzInfo } from './data/juz';
 import { getSurahStartPage } from './data/surahPages';
+import { getPageMeta } from './data/pageMeta';
 import { Home } from 'lucide-react';
 import { getAyahAudioUrl } from './utils/ayahAudioHelper';
 import { fetchSurahTimings, VerseTiming } from './utils/timingService';
@@ -54,6 +55,12 @@ function getSavedReciter(): Reciter {
 
 function getSavedSurah(): Surah {
   try {
+    const lastPage = Number(localStorage.getItem('quran_mushaf_last_page'));
+    if (lastPage >= 1 && lastPage <= 604) {
+      const meta = getPageMeta(lastPage);
+      const s = SURAH_LIST.find(item => item.number === meta.surahNumber);
+      if (s) return s;
+    }
     const n = Number(localStorage.getItem(LS_SURAH));
     if (n >= 1 && n <= 114) return SURAH_LIST[n - 1];
   } catch {}
@@ -490,6 +497,14 @@ export const App: React.FC = () => {
       <MushafPageView
         initialPage={currentMushafPage}
         onBack={() => setCurrentView('home')}
+        onPageChange={(page) => {
+          setCurrentMushafPage(page);
+          const meta = getPageMeta(page);
+          const s = SURAH_LIST.find(item => item.number === meta.surahNumber);
+          if (s && s.number !== selectedSurah.number) {
+            setSelectedSurah(s);
+          }
+        }}
       />
     );
   }
@@ -590,12 +605,22 @@ export const App: React.FC = () => {
           hijriDate={hijriDate}
           prayerTimes={prayerTimes}
           lastReadSurah={selectedSurah}
-          lastReadJuz={Math.ceil(selectedSurah.number / 4)}
+          lastReadJuz={(() => {
+            try {
+              const saved = Number(localStorage.getItem('quran_mushaf_last_page')) || 1;
+              return getPageMeta(saved).juzNumber;
+            } catch {
+              return 1;
+            }
+          })()}
           onResumeReading={() => {
             try {
               const saved = Number(localStorage.getItem('quran_mushaf_last_page'));
               if (saved >= 1 && saved <= 604) {
                 setCurrentMushafPage(saved);
+                const meta = getPageMeta(saved);
+                const s = SURAH_LIST.find(item => item.number === meta.surahNumber);
+                if (s) setSelectedSurah(s);
               } else {
                 setCurrentMushafPage(1);
               }
