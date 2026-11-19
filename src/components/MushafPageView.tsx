@@ -106,10 +106,10 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({ initialPage, onB
     }
   }, [initialPage]);
 
-  // Page navigation (Mushaf reading right-to-left: Next page is page - 1 or page + 1?)
-  // Standard Quran reading: Page 2 (Fatihah/Baqarah) -> Page 3 -> Page 4...
-  // "اگلا صفحہ" = Next page = currentPage + 1
-  // "پچھلا صفحہ" = Previous page = currentPage - 1
+  // Quranic RTL page navigation:
+  // In Arabic/Quran, turning a page forward ("اگلا صفحہ") means flipping from Right to Left, so next page is on the Left!
+  // "اگلا صفحہ" = Next page (currentPage + 1)
+  // "پچھلا صفحہ" = Previous page (currentPage - 1)
   const goNextPage = useCallback(() => {
     if (currentPage < MAX_PAGE) {
       setCurrentPage(prev => prev + 1);
@@ -122,7 +122,9 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({ initialPage, onB
     }
   }, [currentPage]);
 
-  // Touch swipe handling (Left swipe = Next page, Right swipe = Prev page)
+  // Touch swipe handling (Standard Quran Book physics):
+  // Swiping Left (dragging left) -> pulls next page from the right forward -> goNextPage()
+  // Swiping Right (dragging right) -> returns to previous page -> goPrevPage()
   const handleTouchStart = (e: TouchEvent<HTMLDivElement>) => {
     touchStartX.current = e.targetTouches[0].clientX;
   };
@@ -136,17 +138,17 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({ initialPage, onB
     const diff = touchStartX.current - touchEndX.current;
     const threshold = 40; // 40px swipe distance
     if (diff > threshold) {
-      // Swiped left -> Go to next page (or previous in RTL)
+      // Swiped left -> Next page
       goNextPage();
     } else if (diff < -threshold) {
-      // Swiped right -> Go to previous page
+      // Swiped right -> Previous page
       goPrevPage();
     }
     touchStartX.current = null;
     touchEndX.current = null;
   };
 
-  // Keyboard navigation
+  // Keyboard navigation: Left Arrow goes to Next Page in RTL Quran, Right Arrow goes to Previous
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft') goNextPage();
@@ -294,9 +296,9 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({ initialPage, onB
         </div>
       </main>
 
-      {/* Bottom Floating Navigation Bar */}
-      <footer className="flex-none bg-[#0e2a22] border-t border-[#2d5a45] px-4 py-2 flex items-center justify-between shadow-lg z-10">
-        {/* Next Page Button */}
+      {/* Bottom Floating Navigation Bar - Authentic RTL Quran layout (Next Page on Left, Previous Page on Right) */}
+      <footer className="flex-none bg-[#0e2a22] border-t border-[#2d5a45] px-4 py-2 flex items-center justify-between shadow-lg z-10" dir="ltr">
+        {/* Next Page Button (on Left side for RTL Quran reading) */}
         <button
           onClick={goNextPage}
           disabled={currentPage >= MAX_PAGE}
@@ -305,8 +307,9 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({ initialPage, onB
               ? 'bg-[#1b3d30] text-gray-500 cursor-not-allowed'
               : 'bg-[#e8c872] text-[#0a1f18] hover:bg-[#f5da8e] active:scale-95 shadow'
           }`}
+          title="اگلا صفحہ کھولیں"
         >
-          <ChevronRight className="w-4 h-4" />
+          <ChevronLeft className="w-4 h-4" />
           <span className="font-arabic">اگلا صفحہ</span>
         </button>
 
@@ -323,7 +326,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({ initialPage, onB
           </span>
         </button>
 
-        {/* Prev Page Button */}
+        {/* Prev Page Button (on Right side for RTL Quran reading) */}
         <button
           onClick={goPrevPage}
           disabled={currentPage <= MIN_PAGE}
@@ -332,9 +335,10 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({ initialPage, onB
               ? 'bg-[#1b3d30] text-gray-500 cursor-not-allowed'
               : 'bg-[#2d5a45] text-white hover:bg-[#3b7359] active:scale-95'
           }`}
+          title="پچھلا صفحہ کھولیں"
         >
           <span className="font-arabic">پچھلا صفحہ</span>
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronRight className="w-4 h-4" />
         </button>
       </footer>
 
