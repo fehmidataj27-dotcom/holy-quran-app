@@ -46,7 +46,10 @@ export const BookmarksView: React.FC<BookmarksViewProps> = ({
             >
               ←
             </button>
-            <h1 className="text-xl font-bold font-sans">Bookmarks • محفوظ شدہ علامات</h1>
+            <div>
+              <h1 className="text-lg font-bold leading-tight">Bookmarks</h1>
+              <p className="text-xs text-emerald-200 font-arabic">محفوظ شدہ علامات</p>
+            </div>
           </div>
         </div>
 
@@ -54,23 +57,25 @@ export const BookmarksView: React.FC<BookmarksViewProps> = ({
         <div className="flex bg-black/20 p-1 rounded-xl gap-1">
           <button
             onClick={() => setTab('pages')}
-            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
               tab === 'pages'
                 ? 'bg-white text-emerald-900 shadow-sm'
                 : 'text-emerald-100 hover:text-white'
             }`}
           >
-            📖 مصحف صفحات ({pageBookmarks.length})
+            <div>📖 Mushaf Pages ({pageBookmarks.length})</div>
+            <div className="text-[10px] opacity-75 font-arabic">مصحف صفحات</div>
           </button>
           <button
             onClick={() => setTab('ayahs')}
-            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
               tab === 'ayahs'
                 ? 'bg-white text-emerald-900 shadow-sm'
                 : 'text-emerald-100 hover:text-white'
             }`}
           >
-            🔖 آیات مبارکہ ({ayahBookmarks.length})
+            <div>🔖 Ayah Bookmarks ({ayahBookmarks.length})</div>
+            <div className="text-[10px] opacity-75 font-arabic">آیات مبارکہ</div>
           </button>
         </div>
       </div>
@@ -80,11 +85,14 @@ export const BookmarksView: React.FC<BookmarksViewProps> = ({
         {tab === 'pages' && (
           <>
             {pageBookmarks.length === 0 ? (
-              <div className="bg-white dark:bg-[#0e271c] rounded-3xl p-8 text-center border border-emerald-900/10 dark:border-emerald-700/20 shadow-sm space-y-3">
+              <div className="bg-white dark:bg-[#0e271c] rounded-3xl p-8 text-center border border-emerald-900/10 dark:border-emerald-700/20 shadow-sm space-y-2">
                 <div className="text-4xl text-emerald-400">📖</div>
-                <div className="text-base font-bold text-gray-800 dark:text-white">کوئی صفحہ بک مارک نہیں کیا گیا</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
-                  مصحف میں پڑھتے وقت اوپر بک مارک آئیکن دبائیں تاکہ وہ صفحہ یہاں محفوظ ہو جائے اور بعد میں وہیں سے جاری رکھ سکیں۔
+                <div className="text-base font-bold text-gray-800 dark:text-white">No pages bookmarked yet</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">کوئی صفحہ محفوظ نہیں کیا گیا</div>
+                <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                  Tap the bookmark icon while reading Mushaf to save a page here.
+                  <br />
+                  <span className="font-arabic">مصحف پڑھتے وقت بک مارک آئیکن دبائیں</span>
                 </div>
               </div>
             ) : (
@@ -103,10 +111,13 @@ export const BookmarksView: React.FC<BookmarksViewProps> = ({
                       </span>
                       <div>
                         <div className="font-bold text-gray-900 dark:text-white text-sm">
+                          Page #{page} — Mushaf
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 font-arabic">
                           مصحف صفحہ نمبر {page}
                         </div>
-                        <div className="text-xs text-emerald-600 dark:text-emerald-400">
-                          16 سطری تجویدی مصحف • صفحہ کھولیں
+                        <div className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-0.5">
+                          16-Line Indo-Pak Quran • Tap to open
                         </div>
                       </div>
                     </button>
@@ -114,7 +125,7 @@ export const BookmarksView: React.FC<BookmarksViewProps> = ({
                     <button
                       onClick={() => onRemovePageBookmark(page)}
                       className="text-gray-400 hover:text-red-500 p-2 text-sm transition-colors"
-                      title="حذف کریں"
+                      title="Delete • حذف کریں"
                     >
                       🗑️
                     </button>
@@ -129,11 +140,14 @@ export const BookmarksView: React.FC<BookmarksViewProps> = ({
         {tab === 'ayahs' && (
           <>
             {ayahBookmarks.length === 0 ? (
-              <div className="bg-white dark:bg-[#0e271c] rounded-3xl p-8 text-center border border-emerald-900/10 dark:border-emerald-700/20 shadow-sm space-y-3">
+              <div className="bg-white dark:bg-[#0e271c] rounded-3xl p-8 text-center border border-emerald-900/10 dark:border-emerald-700/20 shadow-sm space-y-2">
                 <div className="text-4xl text-emerald-400">🔖</div>
-                <div className="text-base font-bold text-gray-800 dark:text-white">کوئی آیت محفوظ نہیں ہے</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
-                  قرآن سنتے یا پڑھتے وقت کسی بھی آیت کے بک مارک آئیکن پر کلک کریں تاکہ وہ یہاں محفوظ ہو جائے۔
+                <div className="text-base font-bold text-gray-800 dark:text-white">No Ayahs bookmarked yet</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">کوئی آیت محفوظ نہیں کی گئی</div>
+                <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                  Tap the bookmark icon on any Ayah to save it here.
+                  <br />
+                  <span className="font-arabic">کسی بھی آیت کے بک مارک آئیکن پر کلک کریں</span>
                 </div>
               </div>
             ) : (
@@ -152,10 +166,13 @@ export const BookmarksView: React.FC<BookmarksViewProps> = ({
                       </span>
                       <div>
                         <div className="font-bold text-gray-900 dark:text-white text-sm">
-                          {b.surahName}
+                          Surah {b.surahName} • Ayah {b.ayahNumber}
                         </div>
-                        <div className="text-xs text-emerald-600 dark:text-emerald-400">
-                          آیت نمبر: {b.ayahNumber} • {b.timestamp}
+                        <div className="text-xs text-gray-500 dark:text-gray-400 font-arabic">
+                          {b.surahName} • آیت نمبر {b.ayahNumber}
+                        </div>
+                        <div className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-0.5">
+                          {b.timestamp}
                         </div>
                       </div>
                     </button>
@@ -163,7 +180,7 @@ export const BookmarksView: React.FC<BookmarksViewProps> = ({
                     <button
                       onClick={() => onRemoveAyahBookmark(b.id)}
                       className="text-gray-400 hover:text-red-500 p-2 text-sm transition-colors"
-                      title="حذف کریں"
+                      title="Delete • حذف کریں"
                     >
                       🗑️
                     </button>

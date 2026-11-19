@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, TouchEvent } from 'react';
-import { ChevronRight, ChevronLeft, Bookmark, RotateCcw, Loader2, BookOpen, AlertCircle } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Bookmark, RotateCcw, BookOpen, AlertCircle } from 'lucide-react';
 import { getPageMeta, MIN_PAGE, MAX_PAGE } from '../data/pageMeta';
 
 interface MushafPageViewProps {
@@ -47,6 +47,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({ initialPage, onB
   const [loading, setLoading] = useState<boolean>(true);
   const [imgError, setImgError] = useState<boolean>(false);
   const [sourceIndex, setSourceIndex] = useState<number>(0);
+  const [imgLoaded, setImgLoaded] = useState<boolean>(false);
   const [bookmarks, setBookmarks] = useState<number[]>([]);
   const [pageInput, setPageInput] = useState<string>('');
   const [showGotoModal, setShowGotoModal] = useState<boolean>(false);
@@ -74,28 +75,31 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({ initialPage, onB
     // If already loaded in memory, don't show full loading overlay
     if (!loadedPagesRef.current.has(currentPage)) {
       setLoading(true);
+      setImgLoaded(false);
     } else {
       setLoading(false);
+      setImgLoaded(true);
     }
     setImgError(false);
     setSourceIndex(0);
 
-    // Preload next 3 pages and previous 2 pages eagerly
-    for (let i = 1; i <= 3; i++) {
+    // Preload only next 2 pages (reduces network congestion on mobile)
+    for (let i = 1; i <= 2; i++) {
       if (currentPage + i <= MAX_PAGE) {
         const p = currentPage + i;
-        const img = new Image();
-        img.onload = () => loadedPagesRef.current.add(p);
-        img.src = getImageUrl(p, 0);
+        if (!loadedPagesRef.current.has(p)) {
+          const img = new Image();
+          img.onload = () => loadedPagesRef.current.add(p);
+          img.src = getImageUrl(p, 0);
+        }
       }
     }
-    for (let i = 1; i <= 2; i++) {
-      if (currentPage - i >= MIN_PAGE) {
-        const p = currentPage - i;
-        const img = new Image();
-        img.onload = () => loadedPagesRef.current.add(p);
-        img.src = getImageUrl(p, 0);
-      }
+    // Preload 1 previous page
+    if (currentPage - 1 >= MIN_PAGE && !loadedPagesRef.current.has(currentPage - 1)) {
+      const p = currentPage - 1;
+      const img = new Image();
+      img.onload = () => loadedPagesRef.current.add(p);
+      img.src = getImageUrl(p, 0);
     }
   }, [currentPage, onPageChange]);
 
@@ -237,11 +241,47 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({ initialPage, onB
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Loading Spinner */}
-        {loading && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0a1612]/90 z-10">
-            <Loader2 className="w-10 h-10 text-[#e8c872] animate-spin mb-3" />
-            <span className="text-sm text-emerald-200 font-arabic">صفحہ لوڈ ہو رہا ہے...</span>
+        {/* Beautiful Mushaf Skeleton — shown while page image loads */}
+        {loading && !imgError && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0a1612] z-10 p-4">
+            {/* Skeleton page frame */}
+            <div className="w-full max-w-[420px] rounded-xl overflow-hidden shadow-2xl border border-[#2d5a45]/40"
+              style={{ maxHeight: 'calc(100vh - 140px)' }}>
+              {/* Top Bismillah area skeleton */}
+              <div className="bg-[#0e2a22] px-4 pt-5 pb-3 flex flex-col items-center gap-2">
+                <div className="h-5 w-48 rounded-full bg-[#1b4a35] animate-pulse" />
+                <div className="h-3 w-32 rounded-full bg-[#163d2b] animate-pulse" />
+              </div>
+              {/* Lines skeleton — mimics 16-line mushaf */}
+              <div className="bg-[#0d2318] px-5 py-4 flex flex-col gap-3">
+                {Array.from({ length: 16 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-3 rounded-full bg-[#1b4a35] animate-pulse"
+                    style={{
+                      width: `${i % 3 === 0 ? 70 : i % 3 === 1 ? 90 : 80}%`,
+                      marginLeft: 'auto',
+                      animationDelay: `${i * 60}ms`,
+                      opacity: 0.5 + (i % 4) * 0.12,
+                    }}
+                  />
+                ))}
+              </div>
+              {/* Bottom area skeleton */}
+              <div className="bg-[#0e2a22] px-4 py-3 flex justify-between items-center">
+                <div className="h-3 w-16 rounded-full bg-[#1b4a35] animate-pulse" />
+                <div className="h-3 w-16 rounded-full bg-[#1b4a35] animate-pulse" />
+              </div>
+            </div>
+            <div className="mt-4 flex flex-col items-center gap-1">
+              <div className="flex gap-1">
+                {[0,1,2].map(i => (
+                  <div key={i} className="w-2 h-2 rounded-full bg-[#e8c872] animate-bounce"
+                    style={{ animationDelay: `${i * 150}ms` }} />
+                ))}
+              </div>
+              <span className="text-xs text-emerald-400 mt-1 font-arabic">صفحہ {currentPage} لوڈ ہو رہا ہے</span>
+            </div>
           </div>
         )}
 
@@ -281,6 +321,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({ initialPage, onB
             onLoad={() => {
               loadedPagesRef.current.add(currentPage);
               setLoading(false);
+              setImgLoaded(true);
             }}
             onError={() => {
               if (sourceIndex === 0) {
