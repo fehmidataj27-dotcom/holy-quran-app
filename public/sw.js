@@ -1,4 +1,5 @@
-const CACHE_NAME = 'quran-app-v4';
+const CACHE_NAME = 'quran-app-v5';
+const IMAGE_CACHE = 'quran-mushaf-images-v1';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -9,7 +10,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) =>
       Promise.all(
         keys.map((key) => {
-          if (key !== CACHE_NAME) {
+          if (key !== CACHE_NAME && key !== IMAGE_CACHE) {
             return caches.delete(key);
           }
         })
@@ -19,7 +20,29 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Let browser fetch normally, with network-first or fallback
+  const url = new URL(event.request.url);
+
+  // Cache Quran Mushaf page images (Cache First) for instant loading
+  if (url.pathname.includes('/images/') && (url.pathname.endsWith('.webp') || url.pathname.endsWith('.jpg') || url.pathname.endsWith('.png'))) {
+    event.respondWith(
+      caches.open(IMAGE_CACHE).then((cache) => {
+        return cache.match(event.request).then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          return fetch(event.request).then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200) {
+              cache.put(event.request, networkResponse.clone());
+            }
+            return networkResponse;
+          });
+        });
+      })
+    );
+    return;
+  }
+
+  // Normal network-first for other requests
   event.respondWith(
     fetch(event.request).catch(() => caches.match(event.request))
   );

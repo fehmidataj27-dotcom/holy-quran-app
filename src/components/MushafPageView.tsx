@@ -63,22 +63,39 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({ initialPage, onB
     } catch {}
   }, []);
 
+  // Track loaded images in memory so revisited or preloaded pages display instantly
+  const loadedPagesRef = useRef<Set<number>>(new Set());
+
   // Save current page
   useEffect(() => {
     localStorage.setItem(LS_MUSHAF_PAGE, String(currentPage));
     onPageChange?.(currentPage);
-    setLoading(true);
+    
+    // If already loaded in memory, don't show full loading overlay
+    if (!loadedPagesRef.current.has(currentPage)) {
+      setLoading(true);
+    } else {
+      setLoading(false);
+    }
     setImgError(false);
     setSourceIndex(0);
 
-    // Preload next and previous pages for smooth instant reading
-    if (currentPage < MAX_PAGE) {
-      const nextImg = new Image();
-      nextImg.src = getImageUrl(currentPage + 1, 0);
+    // Preload next 3 pages and previous 2 pages eagerly
+    for (let i = 1; i <= 3; i++) {
+      if (currentPage + i <= MAX_PAGE) {
+        const p = currentPage + i;
+        const img = new Image();
+        img.onload = () => loadedPagesRef.current.add(p);
+        img.src = getImageUrl(p, 0);
+      }
     }
-    if (currentPage > MIN_PAGE) {
-      const prevImg = new Image();
-      prevImg.src = getImageUrl(currentPage - 1, 0);
+    for (let i = 1; i <= 2; i++) {
+      if (currentPage - i >= MIN_PAGE) {
+        const p = currentPage - i;
+        const img = new Image();
+        img.onload = () => loadedPagesRef.current.add(p);
+        img.src = getImageUrl(p, 0);
+      }
     }
   }, [currentPage, onPageChange]);
 
@@ -259,7 +276,10 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({ initialPage, onB
               maxHeight: 'calc(100vh - 125px)',
               filter: 'contrast(1.03) brightness(1.01)'
             }}
-            onLoad={() => setLoading(false)}
+            onLoad={() => {
+              loadedPagesRef.current.add(currentPage);
+              setLoading(false);
+            }}
             onError={() => {
               if (sourceIndex === 0) {
                 // Try fallback raw github source
