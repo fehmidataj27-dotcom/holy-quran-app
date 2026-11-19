@@ -1,5 +1,5 @@
-const CACHE_NAME = 'quran-app-v7';
-const IMAGE_CACHE = 'quran-mushaf-images-v3';
+const CACHE_NAME = 'quran-app-v8';
+const IMAGE_CACHE = 'quran-mushaf-images-v4';
 
 const MIN_PAGE = 2;
 const MAX_PAGE = 549;
@@ -12,9 +12,11 @@ function getImageUrl(page) {
 // --- Install: skip waiting immediately ---
 self.addEventListener('install', (event) => {
   self.skipWaiting();
+  // Start background caching right away (don't block install)
+  event.waitUntil(Promise.resolve());
 });
 
-// --- Activate: clean old caches ---
+// --- Activate: clean old caches, then start full background cache ---
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -26,6 +28,10 @@ self.addEventListener('activate', (event) => {
         })
       )
     ).then(() => clients.claim())
+      .then(() => {
+        // Start caching ALL pages immediately in background (non-blocking)
+        startBackgroundCaching();
+      })
   );
 });
 
@@ -47,7 +53,7 @@ self.addEventListener('fetch', (event) => {
       caches.open(IMAGE_CACHE).then((cache) => {
         return cache.match(event.request).then((cachedResponse) => {
           if (cachedResponse) {
-            return cachedResponse;
+            return cachedResponse; // Instant from cache!
           }
           return fetch(event.request).then((networkResponse) => {
             if (networkResponse && networkResponse.status === 200) {
@@ -67,41 +73,52 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// --- Background caching: triggered by app via postMessage ---
+// --- Manual trigger from app ---
 self.addEventListener('message', async (event) => {
   if (event.data && event.data.type === 'CACHE_ALL_PAGES') {
-    cacheAllPages(event.source);
+    startBackgroundCaching();
   }
-  if (event.data && event.data.type === 'CACHE_RANGE') {
-    const { start, end } = event.data;
-    cachePageRange(start, end, event.source);
+  if (event.data && event.data.type === 'GET_CACHE_STATUS') {
+    const status = await getCacheStatus();
+    self.clients.matchAll().then(clients => {
+      clients.forEach(c => c.postMessage({ type: 'CACHE_STATUS', ...status }));
+    });
   }
 });
 
-async function cacheAllPages(client) {
+async function getCacheStatus() {
   const cache = await caches.open(IMAGE_CACHE);
-  const total = MAX_PAGE - MIN_PAGE + 1; // 548 pages
   let cached = 0;
-  let alreadyCached = 0;
-
-  // Check how many already cached
+  const total = MAX_PAGE - MIN_PAGE + 1;
   for (let page = MIN_PAGE; page <= MAX_PAGE; page++) {
-    const url = getImageUrl(page);
-    const existing = await cache.match(url);
-    if (existing) alreadyCached++;
+    const existing = await cache.match(getImageUrl(page));
+    if (existing) cached++;
+  }
+  return { cached, total, done: cached >= total };
+}
+
+// Background caching — aggressive: 8 pages per batch, 150ms delay
+async function startBackgroundCaching() {
+  const cache = await caches.open(IMAGE_CACHE);
+  const BATCH = 8;
+  const DELAY = 150;
+
+  let totalCached = 0;
+
+  // Count already cached
+  for (let page = MIN_PAGE; page <= MAX_PAGE; page++) {
+    const existing = await cache.match(getImageUrl(page));
+    if (existing) totalCached++;
   }
 
-  // If all cached, notify done
-  if (alreadyCached === total) {
-    sendProgress(client, total, total, true);
+  const total = MAX_PAGE - MIN_PAGE + 1;
+
+  if (totalCached >= total) {
+    broadcast({ type: 'CACHE_PROGRESS', cached: total, total, done: true });
     return;
   }
 
-  cached = alreadyCached;
-
-  // Cache in batches of 4 with small delay to avoid overloading network
-  const BATCH = 4;
-  const DELAY = 300; // ms between batches
+  let cached = totalCached;
 
   for (let page = MIN_PAGE; page <= MAX_PAGE; page += BATCH) {
     const batch = [];
@@ -110,12 +127,11 @@ async function cacheAllPages(client) {
       const existing = await cache.match(url);
       if (!existing) {
         batch.push(
-          fetch(url)
+          fetch(url, { priority: 'low' })
             .then((res) => {
               if (res && res.status === 200) {
                 cache.put(url, res.clone());
                 cached++;
-                sendProgress(client, cached, total, false);
               }
             })
             .catch(() => { cached++; })
@@ -125,34 +141,22 @@ async function cacheAllPages(client) {
       }
     }
     await Promise.all(batch);
-    sendProgress(client, cached, total, cached >= total);
+    broadcast({ type: 'CACHE_PROGRESS', cached, total, done: cached >= total });
+
     if (page + BATCH <= MAX_PAGE) {
-      await new Promise(r => setTimeout(r, DELAY));
+      await sleep(DELAY);
     }
   }
 
-  sendProgress(client, total, total, true);
+  broadcast({ type: 'CACHE_PROGRESS', cached: total, total, done: true });
 }
 
-async function cachePageRange(start, end, client) {
-  const cache = await caches.open(IMAGE_CACHE);
-  for (let page = start; page <= end; page++) {
-    const url = getImageUrl(page);
-    const existing = await cache.match(url);
-    if (!existing) {
-      fetch(url).then((res) => {
-        if (res && res.status === 200) cache.put(url, res.clone());
-      }).catch(() => {});
-    }
-  }
-}
-
-function sendProgress(client, cached, total, done) {
-  if (client && client.postMessage) {
-    client.postMessage({ type: 'CACHE_PROGRESS', cached, total, done });
-  }
-  // Also broadcast to all clients
+function broadcast(msg) {
   self.clients.matchAll().then(clients => {
-    clients.forEach(c => c.postMessage({ type: 'CACHE_PROGRESS', cached, total, done }));
+    clients.forEach(c => c.postMessage(msg));
   });
+}
+
+function sleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
 }

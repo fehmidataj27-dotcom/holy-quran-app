@@ -1,60 +1,52 @@
 import React, { useEffect, useState, useRef } from 'react';
 
-const LS_CACHE_DONE = 'quran_full_cache_done';
-
-interface CacheProgress {
-  cached: number;
-  total: number;
-  done: boolean;
-}
+const LS_CACHE_DONE = 'quran_full_cache_done_v4';
 
 interface QuranCacheManagerProps {
-  /** Called when full cache is confirmed done */
   onCacheDone?: () => void;
 }
 
-/**
- * Background caches all 548 Mushaf pages via Service Worker.
- * Shows a small floating progress bar at the bottom.
- * Once done, it disappears and never runs again (localStorage flag).
- */
 export const QuranCacheManager: React.FC<QuranCacheManagerProps> = ({ onCacheDone }) => {
-  const [progress, setProgress] = useState<CacheProgress | null>(null);
+  const [cached, setCached] = useState(0);
+  const [total, setTotal] = useState(548);
+  const [done, setDone] = useState(false);
   const [visible, setVisible] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const startedRef = useRef(false);
 
   useEffect(() => {
-    // If already fully cached before, skip
+    // Already done before?
     if (localStorage.getItem(LS_CACHE_DONE) === 'true') {
       onCacheDone?.();
       return;
     }
 
-    // Listen for SW progress messages
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === 'CACHE_PROGRESS') {
-        const { cached, total, done } = event.data;
-        setProgress({ cached, total, done });
+        const { cached: c, total: t, done: d } = event.data;
+        setCached(c);
+        setTotal(t || 548);
+        setDone(d);
         setVisible(true);
-        if (done) {
+        if (d) {
           localStorage.setItem(LS_CACHE_DONE, 'true');
           onCacheDone?.();
-          setTimeout(() => setVisible(false), 3000);
+          setTimeout(() => setVisible(false), 4000);
         }
       }
     };
+
     navigator.serviceWorker?.addEventListener('message', handleMessage);
 
-    // Start caching after 5 seconds (let app fully load first)
+    // Trigger caching after just 1 second
     const timer = setTimeout(() => {
       if (startedRef.current) return;
       startedRef.current = true;
+      setVisible(true);
       if (navigator.serviceWorker?.controller) {
         navigator.serviceWorker.controller.postMessage({ type: 'CACHE_ALL_PAGES' });
-        setVisible(true);
       }
-    }, 5000);
+    }, 1000);
 
     return () => {
       clearTimeout(timer);
@@ -62,59 +54,52 @@ export const QuranCacheManager: React.FC<QuranCacheManagerProps> = ({ onCacheDon
     };
   }, [onCacheDone]);
 
-  if (!visible || dismissed || !progress) return null;
+  if (!visible || dismissed || done && cached === 0) return null;
 
-  const pct = Math.round((progress.cached / (progress.total || 548)) * 100);
-  const isDone = progress.done || pct >= 100;
+  const pct = total > 0 ? Math.round((cached / total) * 100) : 0;
+  const isDone = done || pct >= 100;
 
   return (
     <div
-      className="fixed bottom-16 left-0 right-0 z-50 flex justify-center pointer-events-none px-4"
+      className="fixed bottom-16 left-2 right-2 z-50 flex justify-center pointer-events-none"
       style={{ direction: 'ltr' }}
     >
       <div
-        className="bg-[#0e2a22] border border-[#2d5a45] rounded-2xl shadow-2xl px-4 py-2.5 w-full max-w-sm pointer-events-auto"
-        style={{ backdropFilter: 'blur(8px)' }}
+        className="bg-[#0a1f18] border border-[#2d5a45] rounded-2xl shadow-2xl px-4 py-2.5 w-full max-w-sm pointer-events-auto"
       >
         <div className="flex items-center justify-between mb-1.5">
-          <div className="flex items-center gap-2">
-            {isDone ? (
-              <span className="text-base">✅</span>
-            ) : (
-              <span className="text-sm animate-spin inline-block">⏳</span>
-            )}
-            <div>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <span className="text-base flex-shrink-0">{isDone ? '✅' : '📥'}</span>
+            <div className="min-w-0 flex-1">
               {isDone ? (
                 <>
-                  <div className="text-xs font-bold text-emerald-300">Full Quran Cached! — Ready for instant reading</div>
-                  <div className="text-[10px] text-emerald-500 font-arabic">پورا قرآن محفوظ — اب ہر صفحہ فوری کھلے گا ✨</div>
+                  <div className="text-xs font-bold text-emerald-300 truncate">Quran Cached! Instant reading ready ⚡</div>
+                  <div className="text-[10px] text-emerald-500 font-arabic">پورا قرآن محفوظ — اب فوری کھلے گا</div>
                 </>
               ) : (
                 <>
-                  <div className="text-xs font-bold text-[#e8c872]">Caching Quran in background… {pct}%</div>
-                  <div className="text-[10px] text-emerald-400 font-arabic">قرآن background میں save ہو رہا ہے ({progress.cached}/{progress.total})</div>
+                  <div className="text-xs font-bold text-[#e8c872]">
+                    Saving Quran… {cached}/{total} pages ({pct}%)
+                  </div>
+                  <div className="text-[10px] text-emerald-400 font-arabic">قرآن save ہو رہا ہے — ایک بار پھر فوری</div>
                 </>
               )}
             </div>
           </div>
           <button
             onClick={() => setDismissed(true)}
-            className="text-gray-500 hover:text-white text-xs ml-2 px-1.5 py-0.5 rounded hover:bg-white/10 transition-colors"
-            title="Dismiss"
-          >
-            ✕
-          </button>
+            className="text-gray-500 hover:text-white text-xs ml-2 p-1 rounded hover:bg-white/10 flex-shrink-0"
+          >✕</button>
         </div>
 
-        {/* Progress bar */}
-        <div className="w-full h-1.5 bg-[#1b3d30] rounded-full overflow-hidden">
+        <div className="w-full h-2 bg-[#1b3d30] rounded-full overflow-hidden">
           <div
-            className="h-full rounded-full transition-all duration-500"
+            className="h-full rounded-full transition-all duration-300"
             style={{
-              width: `${pct}%`,
+              width: `${Math.max(pct, 2)}%`,
               background: isDone
-                ? 'linear-gradient(90deg, #4ade80, #22c55e)'
-                : 'linear-gradient(90deg, #e8c872, #f5da8e)',
+                ? 'linear-gradient(90deg,#4ade80,#22c55e)'
+                : 'linear-gradient(90deg,#e8c872,#f5da8e)',
             }}
           />
         </div>
