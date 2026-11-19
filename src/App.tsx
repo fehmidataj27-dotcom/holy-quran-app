@@ -15,6 +15,7 @@ import { SurahIndexView } from './components/SurahIndexView';
 import { GotoPageModal } from './components/GotoPageModal';
 import { BookmarksView, AyahBookmarkItem } from './components/BookmarksView';
 import { MushafPageView } from './components/MushafPageView';
+import { QuranCacheManager } from './components/QuranCacheManager';
 import { getPrayerTimes, getHijriDate } from './utils/prayerTimes';
 import { JUZ_LIST, JuzInfo } from './data/juz';
 import { getSurahStartPage } from './data/surahPages';
@@ -693,6 +694,9 @@ export const App: React.FC = () => {
           onSelectReciter={handleSelectReciter}
           onSelectSurah={handleSelectSurah}
         />
+
+        {/* Background Quran Cache Manager — caches all 548 pages silently */}
+        <QuranCacheManager />
       </>
     );
   }
