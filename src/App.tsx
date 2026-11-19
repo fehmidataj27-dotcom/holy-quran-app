@@ -431,7 +431,11 @@ export const App: React.FC = () => {
         return totalLen;
       });
 
-      const target = (currentTimeSec / durationSec) * totalLen;
+      const isSpecialSurah = selectedSurah.number === 1 || selectedSurah.number === 9;
+      const bismillahOffset = isSpecialSurah ? 0 : 3.5;
+      const effectiveTime = Math.max(0, currentTimeSec - bismillahOffset);
+      const effectiveDuration = Math.max(1, durationSec - bismillahOffset);
+      const target = (effectiveTime / effectiveDuration) * totalLen;
       let matchedIdx = cumulativeLengths.findIndex(cum => cum >= target);
       if (matchedIdx === -1) matchedIdx = ayahs.length - 1;
       activeNum = ayahs[matchedIdx].numberInSurah;

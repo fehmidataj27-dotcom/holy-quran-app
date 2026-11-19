@@ -83,8 +83,8 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({ initialPage, onB
     setImgError(false);
     setSourceIndex(0);
 
-    // Preload only next 2 pages (reduces network congestion on mobile)
-    for (let i = 1; i <= 2; i++) {
+    // Smart Preload: pre-cache next 5 pages and previous 3 pages aggressively
+    for (let i = 1; i <= 5; i++) {
       if (currentPage + i <= MAX_PAGE) {
         const p = currentPage + i;
         if (!loadedPagesRef.current.has(p)) {
@@ -94,12 +94,13 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({ initialPage, onB
         }
       }
     }
-    // Preload 1 previous page
-    if (currentPage - 1 >= MIN_PAGE && !loadedPagesRef.current.has(currentPage - 1)) {
-      const p = currentPage - 1;
-      const img = new Image();
-      img.onload = () => loadedPagesRef.current.add(p);
-      img.src = getImageUrl(p, 0);
+    for (let i = 1; i <= 3; i++) {
+      if (currentPage - i >= MIN_PAGE && !loadedPagesRef.current.has(currentPage - i)) {
+        const p = currentPage - i;
+        const img = new Image();
+        img.onload = () => loadedPagesRef.current.add(p);
+        img.src = getImageUrl(p, 0);
+      }
     }
   }, [currentPage, onPageChange]);
 

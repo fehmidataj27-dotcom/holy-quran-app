@@ -10,17 +10,6 @@ export const RECITERS_LIST: Reciter[] = [
   // 🕋 حرمین شریفین و ائمہ کبار (FULL 114 SURAHS) — اولویت اول
   // ════════════════════════════════════════════════════════════════
   {
-    id: 'mohammed_ayyoub',
-    name: 'Sheikh Muhammad Ayyub (شیخ محمد ایوب)',
-    arabicName: 'الشيخ محمد أيوب',
-    style: 'حفص عن عاصم - الحجازي العريق',
-    category: 'Haramain',
-    serverUrl: 'https://cdn.mp3quran.net/audio/muhammad-ayyub/r1/',
-    bitrate: '128 kbps',
-    description: 'إمام المسجد النبوي الشريف، رائد النغم الحجازي الأصيل (شیخ محمد ایوب رحمہ اللہ)',
-    hasFullQuran: true
-  },
-  {
     id: 'abdul_rahman_sudais',
     name: 'Sheikh Abdul Rahman Al-Sudais',
     arabicName: 'الشيخ عبد الرحمن السديس',
@@ -30,6 +19,30 @@ export const RECITERS_LIST: Reciter[] = [
     qdcReciterId: 3,
     bitrate: '128 kbps',
     description: 'إمام وخطيب المسجد الحرام ورئيس الشؤون الدينية',
+    hasFullQuran: true
+  },
+  {
+    id: 'mishary_alafasy',
+    name: 'Sheikh Mishary Rashid Alafasy',
+    arabicName: 'الشيخ مشاري راشد العفاسي',
+    style: 'حفص عن عاصم - مرتّل ومتقن',
+    category: 'Saudi',
+    serverUrl: 'https://download.quranicaudio.com/qdc/mishari_al_afasy/murattal/',
+    qdcReciterId: 7,
+    bitrate: '128 kbps',
+    description: 'القارئ الكويتي الشهير عالمياً بحسن الصوت والإتقان',
+    hasFullQuran: true
+  },
+  {
+    id: 'saud_shuraim',
+    name: 'Sheikh Saud Al-Shuraim',
+    arabicName: 'الشيخ سعود الشريم',
+    style: 'حفص عن عاصم - مرتّل',
+    category: 'Haramain',
+    serverUrl: 'https://download.quranicaudio.com/qdc/saud_ash-shuraym/murattal/',
+    qdcReciterId: 10,
+    bitrate: '128 kbps',
+    description: 'إمام المسجد الحرام السابق، صوت شجی وقراءة متقنة',
     hasFullQuran: true
   },
   {
@@ -45,15 +58,14 @@ export const RECITERS_LIST: Reciter[] = [
     hasFullQuran: true
   },
   {
-    id: 'saud_shuraim',
-    name: 'Sheikh Saud Al-Shuraim',
-    arabicName: 'الشيخ سعود الشريم',
-    style: 'حفص عن عاصم - مرتّل',
+    id: 'mohammed_ayyoub',
+    name: 'Sheikh Muhammad Ayyub (شیخ محمد ایوب)',
+    arabicName: 'الشيخ محمد أيوب',
+    style: 'حفص عن عاصم - الحجازي العريق',
     category: 'Haramain',
-    serverUrl: 'https://download.quranicaudio.com/qdc/saud_ash-shuraym/murattal/',
-    qdcReciterId: 10,
+    serverUrl: 'https://cdn.mp3quran.net/audio/muhammad-ayyub/r1/',
     bitrate: '128 kbps',
-    description: 'إمام المسجد الحرام السابق، صوت شجی وقراءة متقنة',
+    description: 'إمام المسجد النبوي الشريف، رائد النغم الحجازي الأصيل (شیخ محمد ایوب رحمہ اللہ)',
     hasFullQuran: true
   },
   {
