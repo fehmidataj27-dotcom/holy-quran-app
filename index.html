@@ -9,10 +9,17 @@
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/icon.svg" />
     <title>القرآن الكريم | Tajweed Quran & Audio Studio</title>
-    <!-- Islamic Arabic & Urdu Google Fonts -->
+    <!-- Preconnect to CDN for ultra-fast Quran page loading -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+    <!-- Non-blocking asynchronous Google Fonts loading for instant app startup -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Noto+Naskh+Arabic:wght@400;600;700&family=Noto+Nastaliq+Urdu:wght@400;600;700&family=Outfit:wght@300;400;500;600;700&family=Scheherazade+New:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Noto+Naskh+Arabic:wght@400;600;700&family=Noto+Nastaliq+Urdu:wght@400;600;700&family=Outfit:wght@300;400;500;600;700&family=Scheherazade+New:wght@400;600;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Noto+Naskh+Arabic:wght@400;600;700&family=Noto+Nastaliq+Urdu:wght@400;600;700&family=Outfit:wght@300;400;500;600;700&family=Scheherazade+New:wght@400;600;700&display=swap" media="print" onload="this.media='all'">
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Noto+Naskh+Arabic:wght@400;600;700&family=Noto+Nastaliq+Urdu:wght@400;600;700&family=Outfit:wght@300;400;500;600;700&family=Scheherazade+New:wght@400;600;700&display=swap">
+    </noscript>
   </head>
   <body class="bg-[#080d14] text-slate-100 antialiased selection:bg-[#d4af37] selection:text-black">
     <div id="root"></div>

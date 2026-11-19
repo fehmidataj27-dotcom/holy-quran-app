@@ -6,6 +6,16 @@ interface JuzIndexViewProps {
   onBack: () => void;
 }
 
+function getPageFileName(page: number): string {
+  return String(page).padStart(3, '0') + '.webp';
+}
+
+function preloadJuzPage(page: number) {
+  const fileName = getPageFileName(page);
+  const img = new Image();
+  img.src = `https://cdn.jsdelivr.net/gh/malikusmanhaider/quran-16-line-images@master/images/${fileName}`;
+}
+
 export const JuzIndexView: React.FC<JuzIndexViewProps> = ({ onSelectJuz, onBack }) => {
   return (
     <div className="min-h-screen bg-[#f4f7f5] dark:bg-[#071710] pb-24 text-gray-800 dark:text-gray-100 animate-fadeIn">
@@ -28,7 +38,9 @@ export const JuzIndexView: React.FC<JuzIndexViewProps> = ({ onSelectJuz, onBack 
             <button
               key={juz.number}
               onClick={() => onSelectJuz(juz)}
-              className="w-full flex items-center justify-between p-3.5 hover:bg-emerald-50 dark:hover:bg-white/5 rounded-2xl transition-all text-left"
+              onMouseEnter={() => preloadJuzPage(juz.page)}
+              onTouchStart={() => preloadJuzPage(juz.page)}
+              className="w-full flex items-center justify-between p-3.5 hover:bg-emerald-50 dark:hover:bg-white/5 rounded-2xl transition-all text-left active:scale-[0.99]"
             >
               <div className="flex items-center gap-3.5">
                 <span className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 font-bold text-xs flex items-center justify-center">

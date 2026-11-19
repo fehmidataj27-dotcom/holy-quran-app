@@ -1,5 +1,5 @@
-const CACHE_NAME = 'quran-app-v5';
-const IMAGE_CACHE = 'quran-mushaf-images-v1';
+const CACHE_NAME = 'quran-app-v6';
+const IMAGE_CACHE = 'quran-mushaf-images-v2';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -22,8 +22,18 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Cache Quran Mushaf page images (Cache First) for instant loading
-  if (url.pathname.includes('/images/') && (url.pathname.endsWith('.webp') || url.pathname.endsWith('.jpg') || url.pathname.endsWith('.png'))) {
+  // Cache Quran Mushaf page images (Cache-First) across any CDN/domain for instant offline & subsequent loads
+  const isMushafImage = (
+    url.pathname.includes('/images/') || 
+    url.hostname.includes('jsdelivr.net') || 
+    url.hostname.includes('githubusercontent.com')
+  ) && (
+    url.pathname.endsWith('.webp') || 
+    url.pathname.endsWith('.jpg') || 
+    url.pathname.endsWith('.png')
+  );
+
+  if (isMushafImage) {
     event.respondWith(
       caches.open(IMAGE_CACHE).then((cache) => {
         return cache.match(event.request).then((cachedResponse) => {
@@ -42,7 +52,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Normal network-first for other requests
+  // Network first with cache fallback for app assets
   event.respondWith(
     fetch(event.request).catch(() => caches.match(event.request))
   );
