@@ -1,22 +1,38 @@
-const CACHE_NAME = 'quran-app-v8';
+const CACHE_NAME = 'quran-app-core-v9';
 const IMAGE_CACHE = 'quran-mushaf-images-v4';
 
 const MIN_PAGE = 2;
 const MAX_PAGE = 549;
+
+// Essential app shell files to cache on install for full offline app operation
+const CORE_ASSETS = [
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/playstore_assets/app_icon_512x512.png',
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png',
+  '/.well-known/assetlinks.json'
+];
 
 function getImageUrl(page) {
   const fileName = String(page).padStart(3, '0') + '.webp';
   return `https://cdn.jsdelivr.net/gh/malikusmanhaider/quran-16-line-images@master/images/${fileName}`;
 }
 
-// --- Install: skip waiting immediately ---
+// --- Install: cache core assets immediately & skip waiting ---
 self.addEventListener('install', (event) => {
   self.skipWaiting();
-  // Start background caching right away (don't block install)
-  event.waitUntil(Promise.resolve());
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(CORE_ASSETS).catch((err) => {
+        console.warn('Some core assets failed to cache:', err);
+      });
+    })
+  );
 });
 
-// --- Activate: clean old caches, then start full background cache ---
+// --- Activate: clean old versions, claim clients, start background Quran caching ---
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -29,16 +45,18 @@ self.addEventListener('activate', (event) => {
       )
     ).then(() => clients.claim())
       .then(() => {
-        // Start caching ALL pages immediately in background (non-blocking)
+        // Auto-cache the entire Quran in background
         startBackgroundCaching();
       })
   );
 });
 
-// --- Fetch: Cache-First for Mushaf images ---
+// --- Fetch Strategy ---
 self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
+  const request = event.request;
+  const url = new URL(request.url);
 
+  // 1. Quran Mushaf page images (Cache-First)
   const isMushafImage = (
     url.hostname.includes('jsdelivr.net') ||
     url.hostname.includes('githubusercontent.com')
@@ -51,13 +69,13 @@ self.addEventListener('fetch', (event) => {
   if (isMushafImage) {
     event.respondWith(
       caches.open(IMAGE_CACHE).then((cache) => {
-        return cache.match(event.request).then((cachedResponse) => {
+        return cache.match(request).then((cachedResponse) => {
           if (cachedResponse) {
-            return cachedResponse; // Instant from cache!
+            return cachedResponse;
           }
-          return fetch(event.request).then((networkResponse) => {
+          return fetch(request).then((networkResponse) => {
             if (networkResponse && networkResponse.status === 200) {
-              cache.put(event.request, networkResponse.clone());
+              cache.put(request, networkResponse.clone());
             }
             return networkResponse;
           }).catch(() => cachedResponse);
@@ -67,58 +85,68 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network first with cache fallback for app assets
+  // 2. Navigation requests (HTML) -> Stale While Revalidate / Cache-Fallback
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        })
+        .catch(async () => {
+          const cache = await caches.open(CACHE_NAME);
+          const cached = await cache.match(request);
+          if (cached) return cached;
+          return cache.match('/') || cache.match('/index.html');
+        })
+    );
+    return;
+  }
+
+  // 3. Static Assets (JS, CSS, fonts, audio, icons) -> Cache First, fallback to network
   event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
+    caches.open(CACHE_NAME).then(async (cache) => {
+      const cached = await cache.match(request);
+      if (cached) {
+        // Fetch in background to update cache silently
+        fetch(request).then((netRes) => {
+          if (netRes && netRes.status === 200) {
+            cache.put(request, netRes.clone());
+          }
+        }).catch(() => {});
+        return cached;
+      }
+
+      return fetch(request).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200 && request.method === 'GET') {
+          cache.put(request, networkResponse.clone());
+        }
+        return networkResponse;
+      }).catch(() => {
+        // Return cached root if available as ultimate fallback
+        return cache.match('/');
+      });
+    })
   );
 });
 
-// --- Manual trigger from app ---
-self.addEventListener('message', async (event) => {
-  if (event.data && event.data.type === 'CACHE_ALL_PAGES') {
-    startBackgroundCaching();
-  }
-  if (event.data && event.data.type === 'GET_CACHE_STATUS') {
-    const status = await getCacheStatus();
-    self.clients.matchAll().then(clients => {
-      clients.forEach(c => c.postMessage({ type: 'CACHE_STATUS', ...status }));
-    });
-  }
-});
-
-async function getCacheStatus() {
-  const cache = await caches.open(IMAGE_CACHE);
-  let cached = 0;
-  const total = MAX_PAGE - MIN_PAGE + 1;
-  for (let page = MIN_PAGE; page <= MAX_PAGE; page++) {
-    const existing = await cache.match(getImageUrl(page));
-    if (existing) cached++;
-  }
-  return { cached, total, done: cached >= total };
-}
-
-// Background caching — aggressive: 8 pages per batch, 150ms delay
+// --- Background Quran Caching (548 pages) ---
 async function startBackgroundCaching() {
   const cache = await caches.open(IMAGE_CACHE);
   const BATCH = 8;
   const DELAY = 150;
 
   let totalCached = 0;
-
-  // Count already cached
   for (let page = MIN_PAGE; page <= MAX_PAGE; page++) {
     const existing = await cache.match(getImageUrl(page));
     if (existing) totalCached++;
   }
 
   const total = MAX_PAGE - MIN_PAGE + 1;
-
-  if (totalCached >= total) {
-    broadcast({ type: 'CACHE_PROGRESS', cached: total, total, done: true });
-    return;
-  }
-
-  let cached = totalCached;
+  if (totalCached >= total) return;
 
   for (let page = MIN_PAGE; page <= MAX_PAGE; page += BATCH) {
     const batch = [];
@@ -131,32 +159,15 @@ async function startBackgroundCaching() {
             .then((res) => {
               if (res && res.status === 200) {
                 cache.put(url, res.clone());
-                cached++;
               }
             })
-            .catch(() => { cached++; })
+            .catch(() => {})
         );
-      } else {
-        cached++;
       }
     }
     await Promise.all(batch);
-    broadcast({ type: 'CACHE_PROGRESS', cached, total, done: cached >= total });
-
     if (page + BATCH <= MAX_PAGE) {
-      await sleep(DELAY);
+      await new Promise(r => setTimeout(r, DELAY));
     }
   }
-
-  broadcast({ type: 'CACHE_PROGRESS', cached: total, total, done: true });
-}
-
-function broadcast(msg) {
-  self.clients.matchAll().then(clients => {
-    clients.forEach(c => c.postMessage(msg));
-  });
-}
-
-function sleep(ms) {
-  return new Promise(r => setTimeout(r, ms));
 }
