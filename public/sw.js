@@ -1,5 +1,5 @@
-const CACHE_NAME = 'quran-app-core-v10';
-const IMAGE_CACHE = 'quran-mushaf-images-v5';
+const CACHE_NAME = 'quran-app-core-v11';
+const IMAGE_CACHE = 'quran-mushaf-images-v6';
 
 const MIN_PAGE = 2;
 const MAX_PAGE = 549;
@@ -20,7 +20,7 @@ function getImageUrl(page) {
   return `https://cdn.jsdelivr.net/gh/malikusmanhaider/quran-16-line-images@master/images/${fileName}`;
 }
 
-// 1. Install Event: Cache Core App Files
+// 1. Install Event: Cache Core App Files AND immediately start pre-caching Quran pages
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
@@ -30,11 +30,14 @@ self.addEventListener('install', (event) => {
       } catch (err) {
         console.warn('Install caching fallback:', err);
       }
+    }).then(() => {
+      // Begin downloading and caching Quran pages right from the install step!
+      startFastBackgroundCaching();
     })
   );
 });
 
-// 2. Activate Event: Clean Old Caches & Launch Fast Background Caching
+// 2. Activate Event: Clean Old Caches & ensure pre-cache is fully active
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -80,7 +83,6 @@ self.addEventListener('fetch', (event) => {
           }
           return networkResponse;
         } catch (err) {
-          // If offline and image not yet cached, return empty or retryable
           return cached || new Response('', { status: 408, statusText: 'Offline' });
         }
       })
@@ -126,7 +128,6 @@ self.addEventListener('fetch', (event) => {
       caches.open(CACHE_NAME).then(async (cache) => {
         const cached = await cache.match(request);
         if (cached) {
-          // background sync
           fetch(request).then((netRes) => {
             if (netRes && netRes.status === 200) cache.put(request, netRes.clone());
           }).catch(() => {});
@@ -156,33 +157,62 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Fast, silent background caching for all 548 Mushaf pages
+// Priority-based background caching:
+// 1. First cache the beginning pages of all 30 Paras (instant opening of any Para!)
+// 2. Then download the rest of the 548 pages in concurrent batches
+let isCachingActive = false;
 async function startFastBackgroundCaching() {
-  const cache = await caches.open(IMAGE_CACHE);
-  const BATCH_SIZE = 10;
-  const DELAY_MS = 100;
+  if (isCachingActive) return;
+  isCachingActive = true;
 
-  for (let page = MIN_PAGE; page <= MAX_PAGE; page += BATCH_SIZE) {
-    const promises = [];
-    for (let p = page; p < Math.min(page + BATCH_SIZE, MAX_PAGE + 1); p++) {
-      const imgUrl = getImageUrl(p);
-      promises.push(
-        cache.match(imgUrl).then((exists) => {
-          if (!exists) {
-            return fetch(imgUrl, { priority: 'low' })
-              .then((res) => {
-                if (res && res.status === 200) {
-                  return cache.put(imgUrl, res.clone());
-                }
-              })
-              .catch(() => {});
+  try {
+    const cache = await caches.open(IMAGE_CACHE);
+
+    // 1st priority: Start pages of all 30 Paras for instant jump
+    const paraStartPages = [
+      2, 21, 39, 57, 75, 93, 111, 129, 147, 165,
+      183, 201, 219, 237, 255, 273, 291, 309, 327, 345,
+      363, 381, 399, 417, 435, 453, 471, 489, 509, 529
+    ];
+
+    const paraPromises = paraStartPages.map(async (page) => {
+      const url = getImageUrl(page);
+      const exists = await cache.match(url);
+      if (!exists) {
+        try {
+          const res = await fetch(url);
+          if (res && res.status === 200) {
+            await cache.put(url, res.clone());
           }
-        })
-      );
+        } catch {}
+      }
+    });
+    await Promise.all(paraPromises);
+
+    // 2nd priority: All pages in high-speed batches of 15
+    const BATCH_SIZE = 15;
+    for (let page = MIN_PAGE; page <= MAX_PAGE; page += BATCH_SIZE) {
+      const promises = [];
+      for (let p = page; p < Math.min(page + BATCH_SIZE, MAX_PAGE + 1); p++) {
+        const imgUrl = getImageUrl(p);
+        promises.push(
+          cache.match(imgUrl).then(async (exists) => {
+            if (!exists) {
+              try {
+                const res = await fetch(imgUrl);
+                if (res && res.status === 200) {
+                  await cache.put(imgUrl, res.clone());
+                }
+              } catch {}
+            }
+          })
+        );
+      }
+      await Promise.all(promises);
+      // Tiny pause to avoid blocking browser main thread
+      await new Promise((r) => setTimeout(r, 40));
     }
-    await Promise.all(promises);
-    if (page + BATCH_SIZE <= MAX_PAGE) {
-      await new Promise((r) => setTimeout(r, DELAY_MS));
-    }
+  } finally {
+    isCachingActive = false;
   }
 }
