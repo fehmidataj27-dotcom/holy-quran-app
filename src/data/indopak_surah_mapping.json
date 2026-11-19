@@ -1,0 +1,572 @@
+{
+  "1": {
+    "name": "Al-Fatihah",
+    "arabicName": "الفاتحة",
+    "page": "002.webp"
+  },
+  "2": {
+    "name": "Al-Baqarah",
+    "arabicName": "البقرة",
+    "page": "003.webp"
+  },
+  "3": {
+    "name": "Ali 'Imran",
+    "arabicName": "آل عمران",
+    "page": "046.webp"
+  },
+  "4": {
+    "name": "An-Nisa",
+    "arabicName": "النساء",
+    "page": "070.webp"
+  },
+  "5": {
+    "name": "Al-Ma'idah",
+    "arabicName": "المائدة",
+    "page": "097.webp"
+  },
+  "6": {
+    "name": "Al-An'am",
+    "arabicName": "الأنعام",
+    "page": "116.webp"
+  },
+  "7": {
+    "name": "Al-A'raf",
+    "arabicName": "الأعراف",
+    "page": "137.webp"
+  },
+  "8": {
+    "name": "Al-Anfal",
+    "arabicName": "الأنفال",
+    "page": "160.webp"
+  },
+  "9": {
+    "name": "At-Tawbah",
+    "arabicName": "التوبة",
+    "page": "169.webp"
+  },
+  "10": {
+    "name": "Yunus",
+    "arabicName": "يونس",
+    "page": "188.webp"
+  },
+  "11": {
+    "name": "Hud",
+    "arabicName": "هود",
+    "page": "200.webp"
+  },
+  "12": {
+    "name": "Yusuf",
+    "arabicName": "يوسف",
+    "page": "213.webp"
+  },
+  "13": {
+    "name": "Ar-Ra'd",
+    "arabicName": "الرعد",
+    "page": "225.webp"
+  },
+  "14": {
+    "name": "Ibrahim",
+    "arabicName": "إبراهيم",
+    "page": "231.webp"
+  },
+  "15": {
+    "name": "Al-Hijr",
+    "arabicName": "الحجر",
+    "page": "236.webp"
+  },
+  "16": {
+    "name": "An-Nahl",
+    "arabicName": "النحل",
+    "page": "241.webp"
+  },
+  "17": {
+    "name": "Al-Isra",
+    "arabicName": "الإسراء",
+    "page": "255.webp"
+  },
+  "18": {
+    "name": "Al-Kahf",
+    "arabicName": "الكهف",
+    "page": "265.webp"
+  },
+  "19": {
+    "name": "Maryam",
+    "arabicName": "مريم",
+    "page": "276.webp"
+  },
+  "20": {
+    "name": "Taha",
+    "arabicName": "طه",
+    "page": "282.webp"
+  },
+  "21": {
+    "name": "Al-Anbya",
+    "arabicName": "الأنبياء",
+    "page": "291.webp"
+  },
+  "22": {
+    "name": "Al-Hajj",
+    "arabicName": "الحج",
+    "page": "300.webp"
+  },
+  "23": {
+    "name": "Al-Mu'minun",
+    "arabicName": "المؤمنون",
+    "page": "309.webp"
+  },
+  "24": {
+    "name": "An-Nur",
+    "arabicName": "النور",
+    "page": "316.webp"
+  },
+  "25": {
+    "name": "Al-Furqan",
+    "arabicName": "الفرقان",
+    "page": "325.webp"
+  },
+  "26": {
+    "name": "Ash-Shu'ara",
+    "arabicName": "الشعراء",
+    "page": "331.webp"
+  },
+  "27": {
+    "name": "An-Naml",
+    "arabicName": "النمل",
+    "page": "340.webp"
+  },
+  "28": {
+    "name": "Al-Qasas",
+    "arabicName": "القصص",
+    "page": "348.webp"
+  },
+  "29": {
+    "name": "Al-'Ankabut",
+    "arabicName": "العنكبوت",
+    "page": "358.webp"
+  },
+  "30": {
+    "name": "Ar-Rum",
+    "arabicName": "الروم",
+    "page": "365.webp"
+  },
+  "31": {
+    "name": "Luqman",
+    "arabicName": "لقمان",
+    "page": "371.webp"
+  },
+  "32": {
+    "name": "As-Sajdah",
+    "arabicName": "السجدة",
+    "page": "374.webp"
+  },
+  "33": {
+    "name": "Al-Ahzab",
+    "arabicName": "الأحزاب",
+    "page": "377.webp"
+  },
+  "34": {
+    "name": "Saba",
+    "arabicName": "سبأ",
+    "page": "386.webp"
+  },
+  "35": {
+    "name": "Fatir",
+    "arabicName": "فاطر",
+    "page": "392.webp"
+  },
+  "36": {
+    "name": "Ya-Sin",
+    "arabicName": "يس",
+    "page": "397.webp"
+  },
+  "37": {
+    "name": "As-Saffat",
+    "arabicName": "الصافات",
+    "page": "402.webp"
+  },
+  "38": {
+    "name": "Sad",
+    "arabicName": "ص",
+    "page": "409.webp"
+  },
+  "39": {
+    "name": "Az-Zumar",
+    "arabicName": "الزمر",
+    "page": "413.webp"
+  },
+  "40": {
+    "name": "Ghafir",
+    "arabicName": "غافر",
+    "page": "421.webp"
+  },
+  "41": {
+    "name": "Fussilat",
+    "arabicName": "فصلت",
+    "page": "430.webp"
+  },
+  "42": {
+    "name": "Ash-Shuraa",
+    "arabicName": "الشورى",
+    "page": "435.webp"
+  },
+  "43": {
+    "name": "Az-Zukhruf",
+    "arabicName": "الزخرف",
+    "page": "441.webp"
+  },
+  "44": {
+    "name": "Ad-Dukhan",
+    "arabicName": "الدخان",
+    "page": "447.webp"
+  },
+  "45": {
+    "name": "Al-Jathiyah",
+    "arabicName": "الجاثية",
+    "page": "449.webp"
+  },
+  "46": {
+    "name": "Al-Ahqaf",
+    "arabicName": "الأحقاف",
+    "page": "453.webp"
+  },
+  "47": {
+    "name": "Muhammad",
+    "arabicName": "محمد",
+    "page": "457.webp"
+  },
+  "48": {
+    "name": "Al-Fath",
+    "arabicName": "الفتح",
+    "page": "461.webp"
+  },
+  "49": {
+    "name": "Al-Hujurat",
+    "arabicName": "الحجرات",
+    "page": "465.webp"
+  },
+  "50": {
+    "name": "Qaf",
+    "arabicName": "ق",
+    "page": "467.webp"
+  },
+  "51": {
+    "name": "Adh-Dhariyat",
+    "arabicName": "الذاريات",
+    "page": "469.webp"
+  },
+  "52": {
+    "name": "At-Tur",
+    "arabicName": "الطور",
+    "page": "472.webp"
+  },
+  "53": {
+    "name": "An-Najm",
+    "arabicName": "النجم",
+    "page": "474.webp"
+  },
+  "54": {
+    "name": "Al-Qamar",
+    "arabicName": "القمر",
+    "page": "476.webp"
+  },
+  "55": {
+    "name": "Ar-Rahman",
+    "arabicName": "الرحمن",
+    "page": "479.webp"
+  },
+  "56": {
+    "name": "Al-Waqi'ah",
+    "arabicName": "الواقعة",
+    "page": "482.webp"
+  },
+  "57": {
+    "name": "Al-Hadid",
+    "arabicName": "الحديد",
+    "page": "485.webp"
+  },
+  "58": {
+    "name": "Al-Mujadila",
+    "arabicName": "المجادلة",
+    "page": "489.webp"
+  },
+  "59": {
+    "name": "Al-Hashr",
+    "arabicName": "الحشر",
+    "page": "492.webp"
+  },
+  "60": {
+    "name": "Al-Mumtahanah",
+    "arabicName": "الممتحنة",
+    "page": "496.webp"
+  },
+  "61": {
+    "name": "As-Saf",
+    "arabicName": "الصف",
+    "page": "498.webp"
+  },
+  "62": {
+    "name": "Al-Jumu'ah",
+    "arabicName": "الجمعة",
+    "page": "500.webp"
+  },
+  "63": {
+    "name": "Al-Munafiqun",
+    "arabicName": "المنافقون",
+    "page": "502.webp"
+  },
+  "64": {
+    "name": "At-Taghabun",
+    "arabicName": "التغابن",
+    "page": "503.webp"
+  },
+  "65": {
+    "name": "At-Talaq",
+    "arabicName": "الطلاق",
+    "page": "505.webp"
+  },
+  "66": {
+    "name": "At-Tahrim",
+    "arabicName": "التحريم",
+    "page": "507.webp"
+  },
+  "67": {
+    "name": "Al-Mulk",
+    "arabicName": "الملك",
+    "page": "509.webp"
+  },
+  "68": {
+    "name": "Al-Qalam",
+    "arabicName": "القلم",
+    "page": "511.webp"
+  },
+  "69": {
+    "name": "Al-Haqqah",
+    "arabicName": "الحاقة",
+    "page": "513.webp"
+  },
+  "70": {
+    "name": "Al-Ma'arij",
+    "arabicName": "المعارج",
+    "page": "515.webp"
+  },
+  "71": {
+    "name": "Nuh",
+    "arabicName": "نوح",
+    "page": "517.webp"
+  },
+  "72": {
+    "name": "Al-Jinn",
+    "arabicName": "الجن",
+    "page": "519.webp"
+  },
+  "73": {
+    "name": "Al-Muzzammil",
+    "arabicName": "المزمل",
+    "page": "521.webp"
+  },
+  "74": {
+    "name": "Al-Muddaththir",
+    "arabicName": "المدثر",
+    "page": "522.webp"
+  },
+  "75": {
+    "name": "Al-Qiyamah",
+    "arabicName": "القيامة",
+    "page": "524.webp"
+  },
+  "76": {
+    "name": "Al-Insan",
+    "arabicName": "الإنسان",
+    "page": "525.webp"
+  },
+  "77": {
+    "name": "Al-Mursalat",
+    "arabicName": "المرسلات",
+    "page": "527.webp"
+  },
+  "78": {
+    "name": "An-Naba",
+    "arabicName": "النبأ",
+    "page": "529.webp"
+  },
+  "79": {
+    "name": "An-Nazi'at",
+    "arabicName": "النازعات",
+    "page": "530.webp"
+  },
+  "80": {
+    "name": "'Abasa",
+    "arabicName": "عبس",
+    "page": "531.webp"
+  },
+  "81": {
+    "name": "At-Takwir",
+    "arabicName": "التكوير",
+    "page": "533.webp"
+  },
+  "82": {
+    "name": "Al-Infitar",
+    "arabicName": "الانفطار",
+    "page": "533.webp"
+  },
+  "83": {
+    "name": "Al-Mutaffifin",
+    "arabicName": "المطففين",
+    "page": "534.webp"
+  },
+  "84": {
+    "name": "Al-Inshiqaq",
+    "arabicName": "الانشقاق",
+    "page": "535.webp"
+  },
+  "85": {
+    "name": "Al-Buruj",
+    "arabicName": "البروج",
+    "page": "536.webp"
+  },
+  "86": {
+    "name": "At-Tariq",
+    "arabicName": "الطارق",
+    "page": "537.webp"
+  },
+  "87": {
+    "name": "Al-A'la",
+    "arabicName": "الأعلى",
+    "page": "538.webp"
+  },
+  "88": {
+    "name": "Al-Ghashiyah",
+    "arabicName": "الغاشية",
+    "page": "538.webp"
+  },
+  "89": {
+    "name": "Al-Fajr",
+    "arabicName": "الفجر",
+    "page": "539.webp"
+  },
+  "90": {
+    "name": "Al-Balad",
+    "arabicName": "البلد",
+    "page": "540.webp"
+  },
+  "91": {
+    "name": "Ash-Shams",
+    "arabicName": "الشمس",
+    "page": "541.webp"
+  },
+  "92": {
+    "name": "Al-Layl",
+    "arabicName": "الليل",
+    "page": "541.webp"
+  },
+  "93": {
+    "name": "Ad-Duhaa",
+    "arabicName": "الضحى",
+    "page": "542.webp"
+  },
+  "94": {
+    "name": "Ash-Sharh",
+    "arabicName": "الشرح",
+    "page": "542.webp"
+  },
+  "95": {
+    "name": "At-Tin",
+    "arabicName": "التين",
+    "page": "543.webp"
+  },
+  "96": {
+    "name": "Al-'Alaq",
+    "arabicName": "العلق",
+    "page": "543.webp"
+  },
+  "97": {
+    "name": "Al-Qadr",
+    "arabicName": "القدر",
+    "page": "544.webp"
+  },
+  "98": {
+    "name": "Al-Bayyinah",
+    "arabicName": "البينة",
+    "page": "544.webp"
+  },
+  "99": {
+    "name": "Az-Zalzalah",
+    "arabicName": "الزلزلة",
+    "page": "545.webp"
+  },
+  "100": {
+    "name": "Al-'Adiyat",
+    "arabicName": "العاديات",
+    "page": "545.webp"
+  },
+  "101": {
+    "name": "Al-Qari'ah",
+    "arabicName": "القارعة",
+    "page": "545.webp"
+  },
+  "102": {
+    "name": "At-Takathur",
+    "arabicName": "التكاثر",
+    "page": "546.webp"
+  },
+  "103": {
+    "name": "Al-'Asr",
+    "arabicName": "العصر",
+    "page": "546.webp"
+  },
+  "104": {
+    "name": "Al-Humazah",
+    "arabicName": "الهمزة",
+    "page": "546.webp"
+  },
+  "105": {
+    "name": "Al-Fil",
+    "arabicName": "الفيل",
+    "page": "547.webp"
+  },
+  "106": {
+    "name": "Quraysh",
+    "arabicName": "قريش",
+    "page": "547.webp"
+  },
+  "107": {
+    "name": "Al-Ma'un",
+    "arabicName": "الماعون",
+    "page": "547.webp"
+  },
+  "108": {
+    "name": "Al-Kawthar",
+    "arabicName": "الكوثر",
+    "page": "547.webp"
+  },
+  "109": {
+    "name": "Al-Kafirun",
+    "arabicName": "الكافرون",
+    "page": "548.webp"
+  },
+  "110": {
+    "name": "An-Nasr",
+    "arabicName": "النصر",
+    "page": "548.webp"
+  },
+  "111": {
+    "name": "Al-Masad",
+    "arabicName": "المسد",
+    "page": "548.webp"
+  },
+  "112": {
+    "name": "Al-Ikhlas",
+    "arabicName": "الإخلاص",
+    "page": "548.webp"
+  },
+  "113": {
+    "name": "Al-Falaq",
+    "arabicName": "الفلق",
+    "page": "549.webp"
+  },
+  "114": {
+    "name": "An-Nas",
+    "arabicName": "الناس",
+    "page": "549.webp"
+  }
+}
