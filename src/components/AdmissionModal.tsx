@@ -8,8 +8,8 @@ interface AdmissionModalProps {
 export const AdmissionModal: React.FC<AdmissionModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
-  const whatsappUrl = `https://wa.me/923067125195?text=${encodeURIComponent(
-    'السلام علیکم، میں جامعہ صوت القرآن میں داخلہ کی معلومات لینا چاہتا ہوں'
+  const whatsappUrl = `https://wa.me/923069242998?text=${encodeURIComponent(
+    'السلام علیکم ورحمۃ اللہ وبرکاتہ، میں جامعہ صوت القرآن میں داخلے کی معلومات لینا چاہتی ہوں'
   )}`;
 
   return (
