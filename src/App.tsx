@@ -15,6 +15,7 @@ import { SurahIndexView } from './components/SurahIndexView';
 import { GotoPageModal } from './components/GotoPageModal';
 import { BookmarksView, AyahBookmarkItem } from './components/BookmarksView';
 import { MushafPageView } from './components/MushafPageView';
+import { AdhkarView } from './components/AdhkarView';
 import { QuranCacheManager } from './components/QuranCacheManager';
 import { getPrayerTimes, getHijriDate } from './utils/prayerTimes';
 import { JUZ_LIST, JuzInfo } from './data/juz';
@@ -70,7 +71,7 @@ function getSavedSurah(): Surah {
 
 export const App: React.FC = () => {
   // Navigation View State: 'home' | 'quran' | 'prayer_times' | 'juz_index' | 'surah_index' | 'bookmarks'
-  const [currentView, setCurrentView] = useState<'home' | 'quran' | 'prayer_times' | 'juz_index' | 'surah_index' | 'bookmarks' | 'mushaf_page'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'quran' | 'prayer_times' | 'juz_index' | 'surah_index' | 'bookmarks' | 'mushaf_page' | 'adhkar'>('home');
   const [currentMushafPage, setCurrentMushafPage] = useState<number>(1);
   const [isAdmissionModalOpen, setIsAdmissionModalOpen] = useState<boolean>(() => {
     try {
@@ -520,6 +521,15 @@ export const App: React.FC = () => {
     );
   }
 
+  // Render Morning & Evening Adhkar View
+  if (currentView === 'adhkar') {
+    return (
+      <AdhkarView
+        onBack={() => setCurrentView('home')}
+      />
+    );
+  }
+
   // Render Prayer Times View
   if (currentView === 'prayer_times') {
     return (
@@ -651,6 +661,7 @@ export const App: React.FC = () => {
             setCurrentView('bookmarks');
           }}
           onOpenPrayerTimes={() => setCurrentView('prayer_times')}
+          onOpenAdhkar={() => setCurrentView('adhkar')}
           onOpenAdmissionModal={() => setIsAdmissionModalOpen(true)}
         />
 
