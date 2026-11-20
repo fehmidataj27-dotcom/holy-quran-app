@@ -31,8 +31,11 @@ export const AdhkarView: React.FC<AdhkarViewProps> = ({ onBack }) => {
   const target = currentDhikr.repeatCount;
   const isCompleted = currentCount >= target;
 
-  // Stop audio whenever changing dhikr or mode
+  // Stop audio and SpeechSynthesis whenever changing dhikr or mode
   const stopAudio = () => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
@@ -40,6 +43,55 @@ export const AdhkarView: React.FC<AdhkarViewProps> = ({ onBack }) => {
     }
     setIsPlayingAudio(false);
     setIsLoadingAudio(false);
+  };
+
+  // Play text via local built-in SpeechSynthesis (100% offline on Android & browser)
+  const speakTextOffline = (text: string) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      setIsLoadingAudio(false);
+      setIsPlayingAudio(false);
+      return;
+    }
+
+    try {
+      window.speechSynthesis.cancel();
+      const clean = text
+        .replace(/[۝۞۩•]/g, '')
+        .replace(/[\n\r]+/g, ' ')
+        .trim();
+
+      const utterance = new SpeechSynthesisUtterance(clean);
+      utterance.lang = 'ar-SA'; // Arabic
+      utterance.rate = 0.88; // Slightly calm and melodious recitation pace
+
+      // Try finding Arabic voice if available
+      const voices = window.speechSynthesis.getVoices();
+      const arabicVoice = voices.find(v => v.lang.startsWith('ar'));
+      if (arabicVoice) {
+        utterance.voice = arabicVoice;
+      }
+
+      utterance.onstart = () => {
+        setIsLoadingAudio(false);
+        setIsPlayingAudio(true);
+      };
+
+      utterance.onend = () => {
+        setIsPlayingAudio(false);
+        setIsLoadingAudio(false);
+      };
+
+      utterance.onerror = () => {
+        setIsPlayingAudio(false);
+        setIsLoadingAudio(false);
+      };
+
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
+      console.warn('SpeechSynthesis error:', e);
+      setIsPlayingAudio(false);
+      setIsLoadingAudio(false);
+    }
   };
 
   useEffect(() => {
@@ -78,8 +130,9 @@ export const AdhkarView: React.FC<AdhkarViewProps> = ({ onBack }) => {
     };
 
     audio.onerror = () => {
-      setIsPlayingAudio(false);
-      setIsLoadingAudio(false);
+      console.warn('Audio stream error/offline, falling back to local SpeechSynthesis');
+      // If network audio fails (e.g. offline with no connection), fallback to offline SpeechSynthesis
+      speakTextOffline(currentDhikr.arabic);
     };
 
     audio.play()
@@ -88,9 +141,8 @@ export const AdhkarView: React.FC<AdhkarViewProps> = ({ onBack }) => {
         setIsLoadingAudio(false);
       })
       .catch((err) => {
-        console.warn('Audio play error:', err);
-        setIsPlayingAudio(false);
-        setIsLoadingAudio(false);
+        console.warn('Audio play error, using offline TTS fallback:', err);
+        speakTextOffline(currentDhikr.arabic);
       });
   };
 

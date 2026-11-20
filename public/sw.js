@@ -1,4 +1,4 @@
-const CACHE_NAME = 'quran-app-core-v11';
+const CACHE_NAME = 'quran-app-core-v12';
 const IMAGE_CACHE = 'quran-mushaf-images-v6';
 
 const MIN_PAGE = 2;
@@ -12,7 +12,11 @@ const CORE_ASSETS = [
   '/playstore_assets/app_icon_512x512.png',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
-  '/.well-known/assetlinks.json'
+  '/.well-known/assetlinks.json',
+  '/audio/adhkar/002255.mp3',
+  '/audio/adhkar/112001.mp3',
+  '/audio/adhkar/113001.mp3',
+  '/audio/adhkar/114001.mp3'
 ];
 
 function getImageUrl(page) {
@@ -120,7 +124,8 @@ self.addEventListener('fetch', (event) => {
     url.pathname.endsWith('.css') ||
     url.pathname.endsWith('.png') ||
     url.pathname.endsWith('.svg') ||
-    url.pathname.endsWith('.json')
+    url.pathname.endsWith('.json') ||
+    url.pathname.endsWith('.mp3')
   );
 
   if (isStatic) {
