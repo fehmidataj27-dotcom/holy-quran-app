@@ -127,29 +127,50 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({ initialPage, onB
     }
   }, [currentPage]);
 
-  // Touch swipe handling (Standard Quran Book physics):
-  // Swiping Left (dragging left) -> pulls next page from the right forward -> goNextPage()
-  // Swiping Right (dragging right) -> returns to previous page -> goPrevPage()
+  // Touch swipe & tap handling (Standard RTL Quran Book physics):
+  // 1. Swiping Right (dragging right ->): returns to previous page (پچھلا صفحہ) -> goPrevPage()
+  // 2. Swiping Left (dragging left <-): advances to next page (اگلا صفحہ) -> goNextPage()
+  // 3. Screen Edge Tap: Tapping Right side -> goPrevPage(), Tapping Left side -> goNextPage()
+  const touchStartY = useRef<number | null>(null);
+
   const handleTouchStart = (e: TouchEvent<HTMLDivElement>) => {
     touchStartX.current = e.targetTouches[0].clientX;
+    touchStartY.current = e.targetTouches[0].clientY;
+    touchEndX.current = e.targetTouches[0].clientX;
   };
 
   const handleTouchMove = (e: TouchEvent<HTMLDivElement>) => {
     touchEndX.current = e.targetTouches[0].clientX;
   };
 
-  const handleTouchEnd = () => {
-    if (touchStartX.current === null || touchEndX.current === null) return;
-    const diff = touchStartX.current - touchEndX.current;
-    const threshold = 40; // 40px swipe distance
-    if (diff > threshold) {
-      // Swiped left -> Next page
-      goNextPage();
-    } else if (diff < -threshold) {
-      // Swiped right -> Previous page
+  const handleTouchEnd = (e: TouchEvent<HTMLDivElement>) => {
+    if (touchStartX.current === null) return;
+    const endX = touchEndX.current !== null ? touchEndX.current : touchStartX.current;
+    const diffX = touchStartX.current - endX;
+    const threshold = 35; // 35px swipe distance
+
+    if (diffX < -threshold) {
+      // Swiped Right (انگلی دائیں طرف کی) -> پچھلا صفحہ (Previous Page)
       goPrevPage();
+    } else if (diffX > threshold) {
+      // Swiped Left (انگلی بائیں طرف کی) -> اگلا صفحہ (Next Page)
+      goNextPage();
+    } else {
+      // Quick Tap on screen side areas (Right side = پچھلا صفحہ, Left side = اگلا صفحہ)
+      const rect = e.currentTarget.getBoundingClientRect();
+      const clickX = touchStartX.current - rect.left;
+      const width = rect.width;
+      if (clickX > width * 0.72) {
+        // Tapped right edge -> پچھلا صفحہ
+        goPrevPage();
+      } else if (clickX < width * 0.28) {
+        // Tapped left edge -> اگلا صفحہ
+        goNextPage();
+      }
     }
+
     touchStartX.current = null;
+    touchStartY.current = null;
     touchEndX.current = null;
   };
 
@@ -237,10 +258,20 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({ initialPage, onB
 
       {/* Main Quran Mushaf Image Display Container */}
       <main
-        className="flex-1 relative flex items-center justify-center overflow-hidden bg-[#0a1612] p-1 md:p-3"
+        className="flex-1 relative flex items-center justify-center overflow-hidden bg-[#0a1612] p-1 md:p-3 select-none"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onClick={(e) => {
+          // Allow clicking left/right 25% of screen to turn pages comfortably
+          const rect = e.currentTarget.getBoundingClientRect();
+          const clickX = e.clientX - rect.left;
+          if (clickX > rect.width * 0.75) {
+            goPrevPage(); // Right side = پچھلا صفحہ
+          } else if (clickX < rect.width * 0.25) {
+            goNextPage(); // Left side = اگلا صفحہ
+          }
+        }}
       >
         {/* Beautiful Mushaf Skeleton — shown while page image loads */}
         {loading && !imgError && (
