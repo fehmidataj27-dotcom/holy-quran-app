@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowLeft, List, RotateCcw, Share2, Star, Check } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ArrowLeft, List, RotateCcw, Share2, Star, Check, Play, Pause, Volume2 } from 'lucide-react';
 import { MORNING_ADHKAR, EVENING_ADHKAR, DhikrItem } from '../data/adhkarData';
 
 interface AdhkarViewProps {
@@ -11,11 +11,14 @@ export const AdhkarView: React.FC<AdhkarViewProps> = ({ onBack }) => {
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   
   // Track read count for each dhikr (starts from 0 -> 1 -> 2 -> ... -> target)
-  // Key: `morning_${id}` or `evening_${id}` -> current count
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [favorites, setFavorites] = useState<number[]>([]);
   const [isListViewOpen, setIsListViewOpen] = useState<boolean>(false);
   const [completedAnimation, setCompletedAnimation] = useState<boolean>(false);
+
+  // Audio Play State
+  const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false);
+  const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   const currentList: DhikrItem[] = mode === 'morning' ? MORNING_ADHKAR : EVENING_ADHKAR;
   const currentDhikr = currentList[currentIndex] || currentList[0];
@@ -25,6 +28,59 @@ export const AdhkarView: React.FC<AdhkarViewProps> = ({ onBack }) => {
   const currentCount = counts[itemKey] || 0;
   const target = currentDhikr.repeatCount;
   const isCompleted = currentCount >= target;
+
+  // Stop audio whenever changing dhikr or unmounting
+  const stopAudio = () => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    setIsPlayingAudio(false);
+  };
+
+  useEffect(() => {
+    stopAudio();
+  }, [currentIndex, mode]);
+
+  useEffect(() => {
+    return () => {
+      stopAudio();
+    };
+  }, []);
+
+  // Audio playback handler
+  const handleTogglePlay = () => {
+    if (isPlayingAudio) {
+      stopAudio();
+      return;
+    }
+
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      alert('آڈیو اس براؤزر میں سپورٹڈ نہیں ہے');
+      return;
+    }
+
+    // Clean arabic text from special symbols and non-arabic clutter for speech
+    const cleanText = currentDhikr.arabic
+      .replace(/[۝۞۩]/g, '')
+      .replace(/[\n\r]+/g, ' ');
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = 'ar-SA'; // Arabic Saudi Arabia
+    utterance.rate = 0.85;    // Peaceful recitation pace
+
+    utterance.onend = () => {
+      setIsPlayingAudio(false);
+    };
+
+    utterance.onerror = () => {
+      setIsPlayingAudio(false);
+    };
+
+    speechRef.current = utterance;
+    setIsPlayingAudio(true);
+    window.speechSynthesis.speak(utterance);
+  };
 
   // Load saved counts & favorites
   useEffect(() => {
@@ -46,7 +102,6 @@ export const AdhkarView: React.FC<AdhkarViewProps> = ({ onBack }) => {
 
   // Handle tap on the counter button: 0 -> 1 -> 2 -> ... -> target
   const handleCountTap = () => {
-    // Vibrate haptic if supported
     if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
       window.navigator.vibrate(40);
     }
@@ -93,7 +148,7 @@ export const AdhkarView: React.FC<AdhkarViewProps> = ({ onBack }) => {
 
   // Share dhikr
   const handleShare = async () => {
-    const text = `${currentDhikr.arabic}\n\nترجمہ: ${currentDhikr.urduTranslation}\n\n(حوالہ: ${currentDhikr.reference})\n\n"صوت القرآن" ایپ سے شیئر کیا گیا`;
+    const text = `${currentDhikr.arabic}\n\nترجمہ: ${currentDhikr.urduTranslation}\n\n(حوالہ: ${currentDhikr.reference || ''})\n\n"صوت القرآن" ایپ سے شیئر کیا گیا`;
     if (navigator.share) {
       try {
         await navigator.share({ title: 'صبح و شام کے اذکار', text });
@@ -198,14 +253,16 @@ export const AdhkarView: React.FC<AdhkarViewProps> = ({ onBack }) => {
             <h4 className="text-sm font-bold text-[#009688] tracking-wide font-sans">
               حوالہ جات
             </h4>
-            {currentDhikr.virtue && (
-              <p className="text-xs sm:text-sm font-arabic text-gray-600 dark:text-gray-300 leading-relaxed px-4">
-                {currentDhikr.virtue}
+            {currentDhikr.note && (
+              <p className="text-xs sm:text-sm font-arabic text-amber-600 dark:text-amber-400 font-semibold px-4">
+                📜 {currentDhikr.note}
               </p>
             )}
-            <p className="text-xs font-semibold text-[#00796b] dark:text-[#4db6ac] font-arabic">
-              ({currentDhikr.reference})
-            </p>
+            {currentDhikr.reference && (
+              <p className="text-xs font-semibold text-[#00796b] dark:text-[#4db6ac] font-arabic">
+                ({currentDhikr.reference})
+              </p>
+            )}
           </div>
         </div>
       </main>
@@ -213,17 +270,35 @@ export const AdhkarView: React.FC<AdhkarViewProps> = ({ onBack }) => {
       {/* ─── Interactive Floating Bottom Counter & Controls ─── */}
       <footer className="fixed bottom-0 left-0 right-0 z-40 bg-[#f8fbfa]/95 dark:bg-[#07130e]/95 backdrop-blur-md border-t border-[#009688]/20 px-4 py-3 flex items-center justify-between max-w-xl mx-auto">
         
-        {/* Left: Progress index (e.g. 20/22) */}
-        <div className="flex items-center gap-2">
+        {/* Left: Progress index (e.g. 20/22) and Audio Play button */}
+        <div className="flex items-center gap-2.5">
           <span className="text-sm font-bold text-gray-700 dark:text-gray-300 font-sans">
             {currentIndex + 1}/{currentList.length}
           </span>
+
+          {/* 🎧 Play / Pause Button exactly like in screenshot */}
+          <button
+            onClick={handleTogglePlay}
+            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
+              isPlayingAudio
+                ? 'bg-[#009688] text-white animate-pulse shadow-md'
+                : 'bg-black/5 dark:bg-white/10 text-gray-700 dark:text-gray-200 hover:bg-[#009688] hover:text-white'
+            }`}
+            title={isPlayingAudio ? 'آڈیو روکیں' : 'ذکر سنیں'}
+          >
+            {isPlayingAudio ? (
+              <Pause className="w-4 h-4 fill-current" />
+            ) : (
+              <Play className="w-4 h-4 fill-current ml-0.5" />
+            )}
+          </button>
+
           <button
             onClick={() => {
               if (currentIndex > 0) setCurrentIndex(prev => prev - 1);
             }}
             disabled={currentIndex === 0}
-            className="p-1.5 rounded-full text-gray-500 hover:text-black dark:hover:text-white disabled:opacity-30"
+            className="p-1 rounded-full text-gray-500 hover:text-black dark:hover:text-white disabled:opacity-30"
             title="پچھلا ذکر"
           >
             ❮
@@ -302,7 +377,7 @@ export const AdhkarView: React.FC<AdhkarViewProps> = ({ onBack }) => {
               if (currentIndex < currentList.length - 1) setCurrentIndex(prev => prev + 1);
             }}
             disabled={currentIndex === currentList.length - 1}
-            className="p-1.5 rounded-full text-gray-500 hover:text-black dark:hover:text-white disabled:opacity-30"
+            className="p-1 rounded-full text-gray-500 hover:text-black dark:hover:text-white disabled:opacity-30"
             title="اگلا ذکر"
           >
             ❯
@@ -380,7 +455,7 @@ export const AdhkarView: React.FC<AdhkarViewProps> = ({ onBack }) => {
                         {item.arabic}
                       </p>
                       <p className="text-[11px] text-gray-500 font-sans mt-0.5">
-                        ہدف: {item.repeatCount} مرتبہ • {item.reference}
+                        ہدف: {item.repeatCount} مرتبہ • {item.reference || ''}
                       </p>
                     </div>
                   </button>
