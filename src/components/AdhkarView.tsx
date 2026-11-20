@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, List, RotateCcw, Share2, Star, Check, Play, Pause, Volume2 } from 'lucide-react';
+import { ArrowLeft, List, RotateCcw, Share2, Star, Check, Play, Pause, Loader2 } from 'lucide-react';
 import { MORNING_ADHKAR, EVENING_ADHKAR, DhikrItem } from '../data/adhkarData';
+import { getDhikrAudioUrl } from '../utils/adhkarAudioHelper';
 
 interface AdhkarViewProps {
   onBack: () => void;
@@ -16,9 +17,10 @@ export const AdhkarView: React.FC<AdhkarViewProps> = ({ onBack }) => {
   const [isListViewOpen, setIsListViewOpen] = useState<boolean>(false);
   const [completedAnimation, setCompletedAnimation] = useState<boolean>(false);
 
-  // Audio Play State
+  // Audio Playback State via real HTML5 Audio Element
   const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false);
-  const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const [isLoadingAudio, setIsLoadingAudio] = useState<boolean>(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const currentList: DhikrItem[] = mode === 'morning' ? MORNING_ADHKAR : EVENING_ADHKAR;
   const currentDhikr = currentList[currentIndex] || currentList[0];
@@ -29,12 +31,15 @@ export const AdhkarView: React.FC<AdhkarViewProps> = ({ onBack }) => {
   const target = currentDhikr.repeatCount;
   const isCompleted = currentCount >= target;
 
-  // Stop audio whenever changing dhikr or unmounting
+  // Stop audio whenever changing dhikr or mode
   const stopAudio = () => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current.removeAttribute('src');
     }
     setIsPlayingAudio(false);
+    setIsLoadingAudio(false);
   };
 
   useEffect(() => {
@@ -47,39 +52,46 @@ export const AdhkarView: React.FC<AdhkarViewProps> = ({ onBack }) => {
     };
   }, []);
 
-  // Audio playback handler
+  // Audio toggle handler using 100% reliable HTML5 Audio MP3
   const handleTogglePlay = () => {
     if (isPlayingAudio) {
       stopAudio();
       return;
     }
 
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-      alert('آڈیو اس براؤزر میں سپورٹڈ نہیں ہے');
-      return;
-    }
+    const audioUrl = getDhikrAudioUrl(mode, currentDhikr.id, currentDhikr.arabic);
+    if (!audioUrl) return;
 
-    // Clean arabic text from special symbols and non-arabic clutter for speech
-    const cleanText = currentDhikr.arabic
-      .replace(/[۝۞۩]/g, '')
-      .replace(/[\n\r]+/g, ' ');
+    stopAudio();
+    setIsLoadingAudio(true);
 
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.lang = 'ar-SA'; // Arabic Saudi Arabia
-    utterance.rate = 0.85;    // Peaceful recitation pace
+    const audio = new Audio(audioUrl);
+    audioRef.current = audio;
 
-    utterance.onend = () => {
-      setIsPlayingAudio(false);
+    audio.oncanplay = () => {
+      setIsLoadingAudio(false);
     };
 
-    utterance.onerror = () => {
+    audio.onended = () => {
       setIsPlayingAudio(false);
+      setIsLoadingAudio(false);
     };
 
-    speechRef.current = utterance;
-    setIsPlayingAudio(true);
-    window.speechSynthesis.speak(utterance);
+    audio.onerror = () => {
+      setIsPlayingAudio(false);
+      setIsLoadingAudio(false);
+    };
+
+    audio.play()
+      .then(() => {
+        setIsPlayingAudio(true);
+        setIsLoadingAudio(false);
+      })
+      .catch((err) => {
+        console.warn('Audio play error:', err);
+        setIsPlayingAudio(false);
+        setIsLoadingAudio(false);
+      });
   };
 
   // Load saved counts & favorites
@@ -281,12 +293,14 @@ export const AdhkarView: React.FC<AdhkarViewProps> = ({ onBack }) => {
             onClick={handleTogglePlay}
             className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
               isPlayingAudio
-                ? 'bg-[#009688] text-white animate-pulse shadow-md'
+                ? 'bg-[#009688] text-white animate-pulse shadow-md ring-2 ring-[#009688]/40'
                 : 'bg-black/5 dark:bg-white/10 text-gray-700 dark:text-gray-200 hover:bg-[#009688] hover:text-white'
             }`}
             title={isPlayingAudio ? 'آڈیو روکیں' : 'ذکر سنیں'}
           >
-            {isPlayingAudio ? (
+            {isLoadingAudio ? (
+              <Loader2 className="w-4 h-4 animate-spin text-[#009688]" />
+            ) : isPlayingAudio ? (
               <Pause className="w-4 h-4 fill-current" />
             ) : (
               <Play className="w-4 h-4 fill-current ml-0.5" />
