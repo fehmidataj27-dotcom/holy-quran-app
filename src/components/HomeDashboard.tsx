@@ -1,3 +1,4 @@
+import { AdBanner } from './AdBanner';
 import React from 'react';
 import { Surah } from '../types';
 import { PrayerTimes } from '../utils/prayerTimes';
@@ -188,6 +189,9 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
             رابطہ کریں
           </span>
         </div>
+
+        {/* Halal Google AdMob Banner Container */}
+        <AdBanner slotId="2482490729" />
       </div>
     </div>
   );
