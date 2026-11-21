@@ -1,4 +1,4 @@
-const CACHE_NAME = 'quran-app-core-v12';
+const CACHE_NAME = 'quran-app-core-v13';
 const IMAGE_CACHE = 'quran-mushaf-images-v6';
 
 const MIN_PAGE = 2;
