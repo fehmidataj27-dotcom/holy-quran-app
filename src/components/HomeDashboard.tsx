@@ -190,8 +190,11 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
           </span>
         </div>
 
-        {/* Halal Google AdMob Banner Container */}
+        {/* Halal Google AdMob Banner — Holy Quran App */}
         <AdBanner slotId="2482490729" />
+
+        {/* Halal Google AdMob Banner — Saut Ul Quran App */}
+        <AdBanner slotId="9439294672" />
       </div>
     </div>
   );
