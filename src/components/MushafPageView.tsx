@@ -150,22 +150,22 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({ initialPage, onB
     const threshold = 35; // 35px swipe distance
 
     if (diffX < -threshold) {
-      // Swiped Right (انگلی دائیں طرف کی) -> پچھلا صفحہ (Previous Page)
-      goPrevPage();
-    } else if (diffX > threshold) {
-      // Swiped Left (انگلی بائیں طرف کی) -> اگلا صفحہ (Next Page)
+      // Swiped Right (انگلی دائیں طرف کی ->) -> اگلا صفحہ (Next Page)
       goNextPage();
+    } else if (diffX > threshold) {
+      // Swiped Left (انگلی بائیں طرف کی <-) -> پچھلا صفحہ (Previous Page)
+      goPrevPage();
     } else {
-      // Quick Tap on screen side areas (Right side = پچھلا صفحہ, Left side = اگلا صفحہ)
+      // Quick Tap on screen side areas (Right side = اگلا صفحہ, Left side = پچھلا صفحہ)
       const rect = e.currentTarget.getBoundingClientRect();
       const clickX = touchStartX.current - rect.left;
       const width = rect.width;
-      if (clickX > width * 0.72) {
-        // Tapped right edge -> پچھلا صفحہ
-        goPrevPage();
-      } else if (clickX < width * 0.28) {
-        // Tapped left edge -> اگلا صفحہ
+      if (clickX > width * 0.70) {
+        // Tapped right side -> اگلا صفحہ
         goNextPage();
+      } else if (clickX < width * 0.30) {
+        // Tapped left side -> پچھلا صفحہ
+        goPrevPage();
       }
     }
 
@@ -210,7 +210,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({ initialPage, onB
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#0a1f18] text-white select-none">
+    <div className="flex flex-col h-screen h-[100dvh] bg-[#0a1f18] text-white select-none overflow-hidden">
       {/* Top Header Bar */}
       <header className="flex-none bg-[#0e2a22] border-b border-[#2d5a45] px-4 py-2.5 flex items-center justify-between shadow-md z-10">
         <div className="flex items-center gap-2">
@@ -256,9 +256,9 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({ initialPage, onB
         </div>
       </header>
 
-      {/* Main Quran Mushaf Image Display Container */}
+      {/* Main Quran Mushaf Image Display Container - Full screen edge-to-edge */}
       <main
-        className="flex-1 relative flex items-center justify-center overflow-hidden bg-[#0a1612] p-1 md:p-3 select-none"
+        className="flex-1 relative flex items-center justify-center overflow-hidden bg-[#0a1612] p-0 select-none w-full"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -266,10 +266,10 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({ initialPage, onB
           // Allow clicking left/right 25% of screen to turn pages comfortably
           const rect = e.currentTarget.getBoundingClientRect();
           const clickX = e.clientX - rect.left;
-          if (clickX > rect.width * 0.75) {
-            goPrevPage(); // Right side = پچھلا صفحہ
-          } else if (clickX < rect.width * 0.25) {
-            goNextPage(); // Left side = اگلا صفحہ
+          if (clickX > rect.width * 0.70) {
+            goNextPage(); // Right side = اگلا صفحہ
+          } else if (clickX < rect.width * 0.30) {
+            goPrevPage(); // Left side = پچھلا صفحہ
           }
         }}
       >
@@ -337,18 +337,18 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({ initialPage, onB
           </div>
         )}
 
-        {/* Real 16-Line Scanned Mushaf Page Image */}
-        <div className="w-full h-full max-w-[700px] flex items-center justify-center">
+        {/* Real 16-Line Scanned Mushaf Page Image - Full Height 9:16 Responsive Fit */}
+        <div className="w-full h-full flex items-center justify-center overflow-hidden p-0 sm:p-1">
           <img
             key={`${currentPage}-${sourceIndex}`}
             src={getImageUrl(currentPage, sourceIndex)}
             alt={`16-Line Mushaf Page ${currentPage}`}
-            className={`max-h-full max-w-full object-contain rounded-md shadow-2xl transition-opacity duration-200 ${
+            className={`w-full h-full object-contain transition-opacity duration-150 ${
               loading ? 'opacity-0' : 'opacity-100'
             }`}
             style={{
-              maxHeight: 'calc(100vh - 125px)',
-              filter: 'contrast(1.03) brightness(1.01)'
+              maxHeight: 'calc(100dvh - 105px)',
+              filter: 'contrast(1.04) brightness(1.01)'
             }}
             onLoad={() => {
               loadedPagesRef.current.add(currentPage);
@@ -369,21 +369,21 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({ initialPage, onB
         </div>
       </main>
 
-      {/* Bottom Floating Navigation Bar - Authentic RTL Quran layout (Next Page on Left, Previous Page on Right) */}
-      <footer className="flex-none bg-[#0e2a22] border-t border-[#2d5a45] px-4 py-2 flex items-center justify-between shadow-lg z-10" dir="ltr">
-        {/* Next Page Button (on Left side for RTL Quran reading) */}
+      {/* Bottom Floating Navigation Bar - Next Page on Right, Prev Page on Left */}
+      <footer className="flex-none bg-[#0e2a22] border-t border-[#2d5a45] px-3 sm:px-4 py-2 flex items-center justify-between shadow-lg z-10" dir="ltr">
+        {/* Prev Page Button (Left side) */}
         <button
-          onClick={goNextPage}
-          disabled={currentPage >= MAX_PAGE}
-          className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-            currentPage >= MAX_PAGE
+          onClick={goPrevPage}
+          disabled={currentPage <= MIN_PAGE}
+          className={`flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+            currentPage <= MIN_PAGE
               ? 'bg-[#1b3d30] text-gray-500 cursor-not-allowed'
-              : 'bg-[#e8c872] text-[#0a1f18] hover:bg-[#f5da8e] active:scale-95 shadow'
+              : 'bg-[#2d5a45] text-white hover:bg-[#3b7359] active:scale-95'
           }`}
-          title="اگلا صفحہ کھولیں"
+          title="پچھلا صفحہ کھولیں"
         >
           <ChevronLeft className="w-4 h-4" />
-          <span className="font-arabic">اگلا صفحہ</span>
+          <span className="font-arabic">پچھلا صفحہ</span>
         </button>
 
         {/* Center Page Indicator (Clickable to Go to Page) */}
@@ -399,18 +399,18 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({ initialPage, onB
           </span>
         </button>
 
-        {/* Prev Page Button (on Right side for RTL Quran reading) */}
+        {/* Next Page Button (Right side) */}
         <button
-          onClick={goPrevPage}
-          disabled={currentPage <= MIN_PAGE}
-          className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-            currentPage <= MIN_PAGE
+          onClick={goNextPage}
+          disabled={currentPage >= MAX_PAGE}
+          className={`flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+            currentPage >= MAX_PAGE
               ? 'bg-[#1b3d30] text-gray-500 cursor-not-allowed'
-              : 'bg-[#2d5a45] text-white hover:bg-[#3b7359] active:scale-95'
+              : 'bg-[#e8c872] text-[#0a1f18] hover:bg-[#f5da8e] active:scale-95 shadow'
           }`}
-          title="پچھلا صفحہ کھولیں"
+          title="اگلا صفحہ کھولیں"
         >
-          <span className="font-arabic">پچھلا صفحہ</span>
+          <span className="font-arabic">اگلا صفحہ</span>
           <ChevronRight className="w-4 h-4" />
         </button>
       </footer>
