@@ -1,7 +1,9 @@
 import { AdBanner } from './AdBanner';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Surah } from '../types';
 import { PrayerTimes } from '../utils/prayerTimes';
+import { getDailyAyah } from '../data/dailyAyahData';
+import { DailyAyahCard } from './DailyAyahCard';
 
 interface HomeDashboardProps {
   hijriDate: { hijri: string; gregorian: string };
@@ -16,6 +18,7 @@ interface HomeDashboardProps {
   onOpenPrayerTimes: () => void;
   onOpenAdhkar: () => void;
   onOpenAdmissionModal: () => void;
+  onOpenNotificationModal?: () => void;
 }
 
 export const HomeDashboard: React.FC<HomeDashboardProps> = ({
@@ -31,7 +34,10 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   onOpenPrayerTimes,
   onOpenAdhkar,
   onOpenAdmissionModal,
+  onOpenNotificationModal,
 }) => {
+  const dailyAyah = useMemo(() => getDailyAyah(), []);
+
   return (
     <div className="min-h-screen bg-[#f4f7f5] dark:bg-[#071710] pb-24 text-gray-800 dark:text-gray-100 animate-fadeIn">
       {/* Top Header */}
@@ -42,14 +48,27 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
             <span className="text-xl font-black tracking-wide font-sans">Al Quran • القرآن</span>
           </div>
 
-          {/* Jamia Admission Button */}
-          <button
-            onClick={onOpenAdmissionModal}
-            className="flex items-center gap-1.5 bg-[#ffd700] hover:bg-[#f5cf00] text-gray-900 px-3 py-1.5 rounded-full font-bold text-xs shadow-md transition-all transform hover:scale-105"
-          >
-            <span>🎓</span>
-            <span>داخلہ آن لائن</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Notification Bell Button */}
+            {onOpenNotificationModal && (
+              <button
+                onClick={onOpenNotificationModal}
+                className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 text-white flex items-center justify-center text-sm shadow transition-all"
+                title="اسلامی یاد دہانی و نوٹیفکیشن"
+              >
+                🔔
+              </button>
+            )}
+
+            {/* Jamia Admission Button */}
+            <button
+              onClick={onOpenAdmissionModal}
+              className="flex items-center gap-1.5 bg-[#ffd700] hover:bg-[#f5cf00] text-gray-900 px-3 py-1.5 rounded-full font-bold text-xs shadow-md transition-all transform hover:scale-105"
+            >
+              <span>🎓</span>
+              <span>داخلہ آن لائن</span>
+            </button>
+          </div>
         </div>
 
         {/* Hijri Date & Prayer Times Widget */}
@@ -81,6 +100,9 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
       </div>
 
       <div className="max-w-md mx-auto p-4 -mt-4 space-y-4">
+        {/* Daily Divine Message (آج کا قرآنی پیغام / آیت مع اردو ترجمہ) */}
+        <DailyAyahCard ayah={dailyAyah} />
+
         {/* Resume Reading Gold Card */}
         {lastReadSurah && (
           <div className="bg-gradient-to-r from-[#d4af37] via-[#c99e28] to-[#b3861b] rounded-3xl p-4 text-white shadow-lg flex items-center justify-between">

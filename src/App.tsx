@@ -9,6 +9,8 @@ import { SurahSidebar } from './components/SurahSidebar';
 import { TajweedGuide } from './components/TajweedGuide';
 import { HomeDashboard } from './components/HomeDashboard';
 import { AdmissionModal } from './components/AdmissionModal';
+import { NotificationModal } from './components/NotificationModal';
+import { checkAndTriggerReminders } from './utils/notificationHelper';
 import { PrayerTimesView } from './components/PrayerTimesView';
 import { JuzIndexView } from './components/JuzIndexView';
 import { SurahIndexView } from './components/SurahIndexView';
@@ -81,6 +83,7 @@ export const App: React.FC = () => {
     }
   });
   const [isGotoPageOpen, setIsGotoPageOpen] = useState<boolean>(false);
+  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState<boolean>(false);
   const [savedBookmarks, setSavedBookmarks] = useState<AyahBookmarkItem[]>(() => {
     try {
       const data = localStorage.getItem('quran_saved_bookmarks_v2');
@@ -96,6 +99,15 @@ export const App: React.FC = () => {
 
   const prayerTimes = getPrayerTimes();
   const hijriDate = getHijriDate();
+
+  // Run Islamic Reminder Scheduler periodically (every 1 minute)
+  useEffect(() => {
+    checkAndTriggerReminders(prayerTimes);
+    const interval = setInterval(() => {
+      checkAndTriggerReminders(prayerTimes);
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [prayerTimes]);
 
   const handleToggleSavedBookmark = (ayahNumber: number) => {
     const existingIndex = savedBookmarks.findIndex(b => b.surahNumber === selectedSurah.number && b.ayahNumber === ayahNumber);
@@ -663,6 +675,13 @@ export const App: React.FC = () => {
           onOpenPrayerTimes={() => setCurrentView('prayer_times')}
           onOpenAdhkar={() => setCurrentView('adhkar')}
           onOpenAdmissionModal={() => setIsAdmissionModalOpen(true)}
+          onOpenNotificationModal={() => setIsNotificationModalOpen(true)}
+        />
+
+        {/* Islamic Reminders & Notifications Modal */}
+        <NotificationModal
+          isOpen={isNotificationModalOpen}
+          onClose={() => setIsNotificationModalOpen(false)}
         />
 
         {/* Admission Popup on App Launch */}
