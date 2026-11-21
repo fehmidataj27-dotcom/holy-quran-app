@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, List, RotateCcw, Share2, Star, Check, Play, Pause, Loader2 } from 'lucide-react';
-import { MORNING_ADHKAR, EVENING_ADHKAR, DhikrItem } from '../data/adhkarData';
-import { getDhikrAudioUrl } from '../utils/adhkarAudioHelper';
+import { MORNING_ADHKAR, EVENING_ADHKAR, PRAYER_ADHKAR, SLEEPING_ADHKAR, DhikrItem } from '../data/adhkarData';
+import { getDhikrAudioUrl, AdhkarCategory } from '../utils/adhkarAudioHelper';
 
 interface AdhkarViewProps {
   onBack: () => void;
+  initialCategory?: AdhkarCategory;
 }
 
-export const AdhkarView: React.FC<AdhkarViewProps> = ({ onBack }) => {
-  const [mode, setMode] = useState<'morning' | 'evening'>('morning');
+export const AdhkarView: React.FC<AdhkarViewProps> = ({ onBack, initialCategory = 'morning' }) => {
+  const [mode, setMode] = useState<AdhkarCategory>(initialCategory);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   
   // Track read count for each dhikr (starts from 0 -> 1 -> 2 -> ... -> target)
@@ -22,7 +23,17 @@ export const AdhkarView: React.FC<AdhkarViewProps> = ({ onBack }) => {
   const [isLoadingAudio, setIsLoadingAudio] = useState<boolean>(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const currentList: DhikrItem[] = mode === 'morning' ? MORNING_ADHKAR : EVENING_ADHKAR;
+  const getListForMode = (m: AdhkarCategory): DhikrItem[] => {
+    switch (m) {
+      case 'morning': return MORNING_ADHKAR;
+      case 'evening': return EVENING_ADHKAR;
+      case 'prayer': return PRAYER_ADHKAR;
+      case 'sleeping': return SLEEPING_ADHKAR;
+      default: return MORNING_ADHKAR;
+    }
+  };
+
+  const currentList: DhikrItem[] = getListForMode(mode);
   const currentDhikr = currentList[currentIndex] || currentList[0];
   const itemKey = `${mode}_${currentDhikr.id}`;
 
@@ -104,7 +115,7 @@ export const AdhkarView: React.FC<AdhkarViewProps> = ({ onBack }) => {
     };
   }, []);
 
-  // Audio toggle handler using 100% reliable HTML5 Audio MP3
+  // Audio toggle handler using 100% reliable HTML5 Audio MP3 with offline fallback
   const handleTogglePlay = () => {
     if (isPlayingAudio) {
       stopAudio();
@@ -131,7 +142,6 @@ export const AdhkarView: React.FC<AdhkarViewProps> = ({ onBack }) => {
 
     audio.onerror = () => {
       console.warn('Audio stream error/offline, falling back to local SpeechSynthesis');
-      // If network audio fails (e.g. offline with no connection), fallback to offline SpeechSynthesis
       speakTextOffline(currentDhikr.arabic);
     };
 
@@ -215,7 +225,7 @@ export const AdhkarView: React.FC<AdhkarViewProps> = ({ onBack }) => {
     const text = `${currentDhikr.arabic}\n\nترجمہ: ${currentDhikr.urduTranslation}\n\n(حوالہ: ${currentDhikr.reference || ''})\n\n"صوت القرآن" ایپ سے شیئر کیا گیا`;
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'صبح و شام کے اذکار', text });
+        await navigator.share({ title: 'مسنون اذکار', text });
       } catch {}
     } else {
       navigator.clipboard.writeText(text);
@@ -229,51 +239,64 @@ export const AdhkarView: React.FC<AdhkarViewProps> = ({ onBack }) => {
   const circumference = 2 * Math.PI * circleRadius;
   const strokeDashoffset = circumference - progressRatio * circumference;
 
+  const categories: { id: AdhkarCategory; title: string; subtitle: string; icon: string }[] = [
+    { id: 'morning', title: 'صبح کے اذکار', subtitle: '22 اذکار', icon: '🌅' },
+    { id: 'evening', title: 'شام کے اذکار', subtitle: '19 اذکار', icon: '🌙' },
+    { id: 'prayer', title: 'نماز کے بعد', subtitle: '13 اذکار', icon: '🕌' },
+    { id: 'sleeping', title: 'سونے کے اذکار', subtitle: '10 اذکار', icon: '🛏️' },
+  ];
+
+  const currentCategory = categories.find(c => c.id === mode) || categories[0];
+
   return (
     <div className="min-h-screen bg-[#f8fbfa] dark:bg-[#07130e] text-[#1b382b] dark:text-[#e1eee6] flex flex-col font-sans select-none pb-28">
       {/* ─── Top Header (Matching user's screenshot) ─── */}
-      <header className="sticky top-0 z-30 bg-[#f8fbfa] dark:bg-[#07130e] border-b border-[#009688]/20 px-4 py-3 flex items-center justify-between">
-        <button
-          onClick={onBack}
-          className="p-2 -ml-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-slate-700 dark:text-slate-200"
-          aria-label="Back"
-        >
-          <ArrowLeft className="w-6 h-6" />
-        </button>
+      <header className="sticky top-0 z-30 bg-[#f8fbfa]/95 dark:bg-[#07130e]/95 backdrop-blur-md border-b border-[#009688]/20 px-3 sm:px-4 py-2.5">
+        <div className="flex items-center justify-between mb-2">
+          <button
+            onClick={onBack}
+            className="p-1.5 -ml-1 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-slate-700 dark:text-slate-200"
+            aria-label="Back"
+          >
+            <ArrowLeft className="w-6 h-6" />
+          </button>
 
-        {/* Title & Mode Switcher */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => { setMode('morning'); setCurrentIndex(0); }}
-            className={`text-base font-bold font-arabic px-3 py-1 rounded-full transition-all ${
-              mode === 'morning'
-                ? 'bg-[#009688] text-white shadow-sm'
-                : 'text-gray-500 hover:text-gray-800 dark:text-gray-400'
-            }`}
-          >
-            صبح کے اذکار
-          </button>
-          <button
-            onClick={() => { setMode('evening'); setCurrentIndex(0); }}
-            className={`text-base font-bold font-arabic px-3 py-1 rounded-full transition-all ${
-              mode === 'evening'
-                ? 'bg-[#009688] text-white shadow-sm'
-                : 'text-gray-500 hover:text-gray-800 dark:text-gray-400'
-            }`}
-          >
-            شام کے اذکار
-          </button>
+          <div className="flex items-center gap-1.5 font-bold font-arabic text-lg text-[#009688]">
+            <span>{currentCategory.icon}</span>
+            <span>{currentCategory.title}</span>
+          </div>
+
+          {/* Action icons on top right */}
+          <div className="flex items-center gap-1 text-slate-700 dark:text-slate-200">
+            <button
+              onClick={() => setIsListViewOpen(prev => !prev)}
+              className="p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+              title="فہرست دیکھیں"
+            >
+              <List className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
-        {/* Action icons on top right */}
-        <div className="flex items-center gap-1 text-slate-700 dark:text-slate-200">
-          <button
-            onClick={() => setIsListViewOpen(prev => !prev)}
-            className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-            title="فہرست دیکھیں"
-          >
-            <List className="w-5 h-5" />
-          </button>
+        {/* 4 Category Filter Tabs (Horizontal Scrollable Pills) */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar justify-start sm:justify-center">
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => {
+                setMode(cat.id);
+                setCurrentIndex(0);
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold font-arabic whitespace-nowrap transition-all shadow-sm ${
+                mode === cat.id
+                  ? 'bg-[#009688] text-white shadow-md transform scale-[1.02]'
+                  : 'bg-white dark:bg-[#0e271c] text-gray-600 dark:text-gray-300 border border-black/5 dark:border-white/10 hover:border-[#009688]/40'
+              }`}
+            >
+              <span>{cat.icon}</span>
+              <span>{cat.title}</span>
+            </button>
+          ))}
         </div>
       </header>
 
@@ -298,49 +321,43 @@ export const AdhkarView: React.FC<AdhkarViewProps> = ({ onBack }) => {
           {/* 2. Three Floral Decorative Stars (✿ ✿ ✿) */}
           <div className="flex items-center justify-center gap-2 text-[#009688] py-2">
             <span className="text-xl">✿</span>
-            <span className="text-2xl">✿</span>
+            <span className="text-xl">✿</span>
             <span className="text-xl">✿</span>
           </div>
 
           {/* 3. Urdu Translation */}
-          <div className="w-full px-2 text-right">
+          <div className="space-y-2 px-2 max-w-lg">
             <p
-              className="text-base sm:text-lg font-arabic text-gray-800 dark:text-gray-200 leading-loose select-text"
+              className="font-arabic text-base sm:text-lg text-gray-700 dark:text-gray-300 leading-loose select-text"
               style={{ lineHeight: 2.0 }}
             >
               {currentDhikr.urduTranslation}
             </p>
           </div>
 
-          {/* 4. References & Virtues Section (حوالہ جات) */}
-          <div className="w-full pt-4 border-t border-[#009688]/15 text-center space-y-2">
-            <h4 className="text-sm font-bold text-[#009688] tracking-wide font-sans">
-              حوالہ جات
-            </h4>
-            {currentDhikr.note && (
-              <p className="text-xs sm:text-sm font-arabic text-amber-600 dark:text-amber-400 font-semibold px-4">
-                📜 {currentDhikr.note}
+          {/* 4. Reference / حواله جات Box */}
+          {currentDhikr.reference && (
+            <div className="pt-4 pb-2 w-full max-w-md">
+              <div className="text-sm font-bold text-[#009688] mb-1.5 font-arabic">
+                حوالہ جات
+              </div>
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-arabic leading-relaxed">
+                {currentDhikr.reference}
               </p>
-            )}
-            {currentDhikr.reference && (
-              <p className="text-xs font-semibold text-[#00796b] dark:text-[#4db6ac] font-arabic">
-                ({currentDhikr.reference})
-              </p>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </main>
 
-      {/* ─── Interactive Floating Bottom Counter & Controls ─── */}
-      <footer className="fixed bottom-0 left-0 right-0 z-40 bg-[#f8fbfa]/95 dark:bg-[#07130e]/95 backdrop-blur-md border-t border-[#009688]/20 px-4 py-3 flex items-center justify-between max-w-xl mx-auto">
-        
-        {/* Left: Progress index (e.g. 20/22) and Audio Play button */}
+      {/* ─── Bottom Persistent Bar with Signature Circular Touch Counter ─── */}
+      <footer className="fixed bottom-0 left-0 right-0 z-40 bg-[#f8fbfa] dark:bg-[#07130e] border-t border-[#009688]/20 px-4 py-2 flex items-center justify-between shadow-2xl max-w-xl mx-auto">
+        {/* Left: Audio Player & Progress Counter (e.g. 20/22) */}
         <div className="flex items-center gap-2.5">
-          <span className="text-sm font-bold text-gray-700 dark:text-gray-300 font-sans">
+          <span className="text-xs font-bold font-sans text-gray-500 dark:text-gray-400">
             {currentIndex + 1}/{currentList.length}
           </span>
 
-          {/* 🎧 Play / Pause Button exactly like in screenshot */}
+          {/* 🎧 Play / Pause Button */}
           <button
             onClick={handleTogglePlay}
             className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
@@ -477,7 +494,7 @@ export const AdhkarView: React.FC<AdhkarViewProps> = ({ onBack }) => {
           <div className="w-full max-w-sm bg-[#f8fbfa] dark:bg-[#07130e] h-full shadow-2xl flex flex-col p-4 animate-in slide-in-from-right duration-200">
             <div className="flex items-center justify-between pb-3 border-b border-[#009688]/20">
               <h3 className="font-bold font-arabic text-lg text-[#009688]">
-                {mode === 'morning' ? 'صبح کے تمام اذکار' : 'شام کے تمام اذکار'} ({currentList.length})
+                {currentCategory.title} ({currentList.length})
               </h3>
               <button
                 onClick={() => setIsListViewOpen(false)}

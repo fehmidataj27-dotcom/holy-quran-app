@@ -103,22 +103,22 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
           </div>
         )}
 
-        {/* Adhkar - Morning & Evening Special Feature Banner */}
+        {/* Adhkar - Morning, Evening, After Prayer & Sleeping Adhkar Banner */}
         <div 
           onClick={onOpenAdhkar}
           className="cursor-pointer bg-gradient-to-r from-[#00695c] to-[#004d40] border border-[#4db6ac]/40 rounded-3xl p-4 shadow-md flex items-center justify-between text-white transition-all transform hover:scale-[1.01] active:scale-95"
         >
           <div className="flex items-center gap-3.5">
             <div className="w-12 h-12 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center text-2xl shadow-inner">
-              🌅
+              📿
             </div>
             <div>
               <div className="font-bold text-sm text-[#e0f2f1] font-arabic flex items-center gap-2">
-                <span>صبح و شام کے مسنون اذکار</span>
-                <span className="text-[10px] bg-amber-400 text-black px-2 py-0.5 rounded-full font-sans font-bold">تسبیحات</span>
+                <span>مسنون اذکار و تسبیحات</span>
+                <span className="text-[10px] bg-amber-400 text-black px-2 py-0.5 rounded-full font-sans font-bold">4 اقسام</span>
               </div>
               <div className="text-xs text-teal-100 font-sans mt-0.5">
-                Morning & Evening Adhkar with Smart Touch Counter
+                صبح و شام • نماز کے بعد • سونے کے اذکار (بشمول کاؤنٹر و آڈیو)
               </div>
             </div>
           </div>
