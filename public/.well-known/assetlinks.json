@@ -10,5 +10,17 @@
         "BA:D4:49:C8:28:3D:34:DB:6D:12:A5:61:9B:A4:04:2C:6E:AB:5C:82:5E:3D:2F:83:75:CA:99:C6:18:65:FD:7E"
       ]
     }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.vercel.sautulquran.twa",
+      "sha256_cert_fingerprints": [
+        "B4:FC:4F:5A:FF:26:4E:96:0A:A6:5F:C6:8D:CB:BC:B4:81:E2:D6:30:64:C5:C8:66:04:F6:4E:73:BC:4E:F0:50",
+        "AA:C3:4B:55:38:9E:02:E0:AF:40:1B:C1:09:51:E7:93:3D:92:B6:55:16:5A:6F:C3:C3:B0:9F:98:CD:7B:EC:E7",
+        "BA:D4:49:C8:28:3D:34:DB:6D:12:A5:61:9B:A4:04:2C:6E:AB:5C:82:5E:3D:2F:83:75:CA:99:C6:18:65:FD:7E"
+      ]
+    }
   }
 ]
